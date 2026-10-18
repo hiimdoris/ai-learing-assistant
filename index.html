@@ -3,86 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart AI Study Hub - 智慧學習助理平台</title>
+  <title>Smart AI Study Hub - 智慧學習助理</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Lucide Icons -->
-  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
 
-  <!-- React & React-DOM CDN -->
+  <!-- React & React-DOM -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
   
-  <!-- Babel Standalone CDN -->
+  <!-- Babel Standalone -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
-    
-    body {
-      font-family: 'Plus Jakarta Sans', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
-      background-color: #090d16;
-      color: #f8fafc;
-    }
-
-    ::-webkit-scrollbar {
-      width: 5px;
-      height: 5px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #0f172a;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #334155;
-      border-radius: 9999px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #475569;
-    }
-
-    /* 3D Flashcards */
-    .perspective-1000 {
-      perspective: 1000px;
-    }
-    .transform-style-3d {
-      transform-style: preserve-3d;
-      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .rotate-y-180 {
-      transform: rotateY(180deg);
-    }
-    .backface-hidden {
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-    }
-
-    /* Modern Glassmorphism */
-    .glass-card {
-      background: rgba(15, 23, 42, 0.75);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    .glass-card-hover {
-      transition: all 0.2s ease-in-out;
-    }
-    .glass-card-hover:hover {
-      background: rgba(30, 41, 59, 0.85);
-      border-color: rgba(99, 102, 241, 0.4);
-      transform: translateY(-2px);
-    }
-
-    /* Custom Pulse Ring Animation */
-    @keyframes pulse-ring {
-      0% { transform: scale(0.95); opacity: 0.8; }
-      50% { transform: scale(1.05); opacity: 0.4; }
-      100% { transform: scale(0.95); opacity: 0.8; }
-    }
-    .animate-pulse-ring {
-      animation: pulse-ring 3s infinite ease-in-out;
-    }
+    body { font-family: 'Plus Jakarta Sans', 'Noto Sans TC', sans-serif; background-color: #090d16; color: #f8fafc; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+    .glass-card { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
+    .perspective-1000 { perspective: 1000px; }
+    .transform-style-3d { transform-style: preserve-3d; transition: transform 0.5s; }
+    .rotate-y-180 { transform: rotateY(180deg); }
+    .backface-hidden { backface-visibility: hidden; }
   </style>
 </head>
 <body class="h-screen overflow-hidden flex flex-col bg-slate-950 text-slate-100">
@@ -90,1093 +33,397 @@
   <div id="root" class="h-full w-full"></div>
 
   <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
+    const { useState } = React;
 
-    // 預設文庫資料
     const INITIAL_FILES = [
-      {
-        id: 'file-1',
-        name: 'Machine_Learning_Fundamentals.pdf',
-        type: 'pdf',
-        size: '2.4 MB',
-        words: 3420,
-        active: true,
-        uploadDate: '2026-10-15',
-        content: `機器學習 (Machine Learning) 基礎導論：\n\n1. 監督式學習 (Supervised Learning)：利用標註資料 (Labeled Data) 訓練模型。常見演算法包含：\n- 線性回歸 (Linear Regression)：預測連續數值。\n- 邏輯回歸 (Logistic Regression)：用於二元分類。\n- 決策樹 (Decision Trees) 與 隨機森林 (Random Forest)：處理非線性邊界。\n- 支援向量機 (Support Vector Machine, SVM)：透過最大化邊界 (Margin) 分離類別。\n\n2. 非監督式學習 (Unsupervised Learning)：處理未標註資料，尋找潛在結構。\n- K-Means 分群：依距離聚合資料點。\n- PCA (Principal Component Analysis)：降維與特徵萃取。\n\n3. 深度學習與類神經網絡 (Neural Networks)：\n- 損失函數 (Loss Function) 與 梯度下降法 (Gradient Descent) 是優化權重的關鍵。\n- 過擬合 (Overfitting) 的解決方案：L1/L2 正規化 (Regularization)、Dropout、增加數據量 (Data Augmentation)。`
-      },
-      {
-        id: 'file-2',
-        name: 'Economics_Micro_Notes.txt',
-        type: 'txt',
-        size: '850 KB',
-        words: 1850,
-        active: true,
-        uploadDate: '2026-10-17',
-        content: `個體經濟學 (Microeconomics) 核心筆記：\n\n1. 供需法則 (Law of Demand and Supply):\n- 需求法則：價格上升，需求量下降 (Price ↑, Quantity Demanded ↓)。\n- 供給法則：價格上升，供給量上升 (Price ↑, Quantity Supplied ↓)。\n- 均衡點 (Equilibrium)：需求曲線與供給曲線交點，決定市場均衡價格 (P*) 與數量 (Q*)。\n\n2. 彈性 (Elasticity):\n- 需求價格彈性 (Price Elasticity of Demand, PED)：反應消費者對價格變動的敏感度。\n- PED > 1 代表富有彈性 (Elastic)，PED < 1 代表缺乏彈性 (Inelastic)。`
-      }
+      { id: 'file-1', name: 'Machine_Learning_Fundamentals.pdf', words: 3420, active: true, type: 'pdf', content: '機器學習 (Machine Learning) 導論：\n1. 監督式學習 (Supervised Learning)：預測連續數值的 Linear Regression、用於二元分類的 Logistic Regression。\n2. 非監督式學習 (Unsupervised Learning)：K-Means 分群、PCA 降維。' },
+      { id: 'file-2', name: 'Economics_Micro_Notes.txt', words: 1850, active: true, type: 'txt', content: '個體經濟学筆記：\n1. 供需法則 (Demand and Supply)\n2. 需求價格彈性 (PED)' }
     ];
 
-    // 歷史紀錄範例
-    const INITIAL_HISTORY = [
-      { id: 'h-1', title: 'ML 監督式學習與邏輯回歸考題', mode: 'quiz', date: '10 分鐘前' },
-      { id: 'h-2', title: '供需彈性與市場結構重點摘要', mode: 'summary', date: '2 小時前' },
-      { id: 'h-3', title: '深度學習神經網路卡片集', mode: 'flashcards', date: '昨天' }
-    ];
-
-    // 學習模式列表
     const STUDY_MODES = [
-      {
-        id: 'quiz',
-        title: '測驗與考題生成',
-        subtitle: '單選題、觀念題與實戰評測',
-        icon: 'help-circle',
-        badge: '模擬測驗',
-        color: 'from-indigo-500 to-purple-600',
-        borderColor: 'border-indigo-500/50'
-      },
-      {
-        id: 'summary',
-        title: '重點整理與 TL;DR',
-        subtitle: '核心概念、速覽條列與精華摘要',
-        icon: 'file-text',
-        badge: '觀念提鍊',
-        color: 'from-blue-500 to-cyan-600',
-        borderColor: 'border-blue-500/50'
-      },
-      {
-        id: 'flashcards',
-        title: '智慧字卡 (Flashcards)',
-        subtitle: '雙面翻轉記憶與間隔重複記憶',
-        icon: 'layers',
-        badge: '記憶卡片',
-        color: 'from-emerald-500 to-teal-600',
-        borderColor: 'border-emerald-500/50'
-      },
-      {
-        id: 'explainer',
-        title: '費曼觀念與 AI 導師',
-        subtitle: '白話比喻解說與互動式問答',
-        icon: 'lightbulb',
-        badge: '白話講解',
-        color: 'from-amber-500 to-orange-600',
-        borderColor: 'border-amber-500/50'
-      },
-      {
-        id: 'outline',
-        title: '知識樹與條列大綱',
-        subtitle: '系統化階層結構與脈絡心智圖',
-        icon: 'git-fork',
-        badge: '架構分析',
-        color: 'from-rose-500 to-pink-600',
-        borderColor: 'border-rose-500/50'
-      }
-    ];
-
-    const PROMPT_PRESETS = [
-      "專有名詞保留英文對照",
-      "幫我出 5 道考前必考經典單選題",
-      "用 12 歲小孩能聽懂的範例比喻 (EL5)",
-      "標註常考陷阱與高頻錯題觀念",
-      "列出 3 個核心公式與應用場景"
+      { id: 'quiz', title: '測驗與考題生成', subtitle: '選擇題與實戰演練', icon: '📝' },
+      { id: 'summary', title: '重點整理與摘要', subtitle: 'TL;DR 與核心概念提鍊', icon: '⚡' },
+      { id: 'flashcards', title: '智慧記憶卡片', subtitle: '雙面翻轉記憶卡', icon: '🎴' },
+      { id: 'explainer', title: '費曼學習法白話講解', subtitle: '通俗比喻與即時對話', icon: '💡' }
     ];
 
     function App() {
-      // 導航與視圖控制: 'dashboard' (首頁), 'workspace' (工作台), 'library' (文庫), 'settings' (設定)
-      const [currentView, setCurrentView] = useState('dashboard');
-      
+      const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'workspace', 'library'
       const [files, setFiles] = useState(INITIAL_FILES);
-      const [history, setHistory] = useState(INITIAL_HISTORY);
       const [selectedMode, setSelectedMode] = useState('quiz');
-      const [customPrompt, setCustomPrompt] = useState('專有名詞保留英文，幫我製作適合考前複習的內容。');
-      
+      const [customPrompt, setCustomPrompt] = useState('專有名詞保留英文對照，幫我製作適合考前複習的內容。');
       const [isLoading, setIsLoading] = useState(false);
-      const [generatedResult, setGeneratedResult] = useState(null);
-      const [errorMsg, setErrorMsg] = useState('');
-      const [copyNotice, setCopyNotice] = useState(false);
+      const [result, setResult] = useState(null);
+      const [cardFlipped, setCardFlipped] = useState(false);
+      
+      // 上傳 modal
+      const [showUploadModal, setShowUploadModal] = useState(false);
+      const [pasteText, setPasteText] = useState('');
+      const [pasteTitle, setPasteTitle] = useState('');
 
-      // 上傳檔案 Modal & Drag Ref
-      const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-      const [isDragging, setIsDragging] = useState(false);
-      const [uploadText, setUploadText] = useState('');
-      const [uploadFileName, setUploadFileName] = useState('');
-
-      // 互動狀態
-      const [quizAnswers, setQuizAnswers] = useState({});
-      const [quizSubmitted, setQuizSubmitted] = useState(false);
-      const [flashcardIndex, setFlashcardIndex] = useState(0);
-      const [flashcardFlipped, setFlashcardFlipped] = useState(false);
-      const [chatMessages, setChatMessages] = useState([]);
-      const [chatInput, setChatInput] = useState('');
-
-      const fileInputRef = useRef(null);
-
-      useEffect(() => {
-        if (window.lucide) {
-          try { window.lucide.createIcons(); } catch(e) {}
-        }
-      });
-
-      // 切換檔案啟用狀態
-      const toggleFileActive = (id) => {
-        setFiles(files.map(f => f.id === id ? { ...f, active: !f.active } : f));
-      };
-
-      // 刪除檔案
-      const deleteFile = (id) => {
-        setFiles(files.filter(f => f.id !== id));
-      };
-
-      // 模擬檔案上傳處理
-      const handleFileUpload = (e) => {
-        const fileList = e.target.files || e.dataTransfer?.files;
-        if (!fileList || fileList.length === 0) return;
-
-        Array.from(fileList).forEach(file => {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            const content = event.target.result;
-            const newFile = {
-              id: 'file-' + Date.now() + Math.random().toString(36).substring(2, 5),
-              name: file.name,
-              type: file.name.split('.').pop().toLowerCase() || 'txt',
-              size: `${(file.size / 1024).toFixed(1)} KB`,
-              words: content.length ? content.split(/\s+/).length : 0,
-              active: true,
-              uploadDate: new Date().toISOString().split('T')[0],
-              content: content || '無法讀取文件內容或格式不符。'
-            };
-            setFiles(prev => [newFile, ...prev]);
-          };
-          reader.readAsText(file);
-        });
-        setIsUploadModalOpen(false);
-        setIsDragging(false);
-      };
-
-      // 手動貼上文字新增
-      const handleAddManualText = () => {
-        if (!uploadText.trim()) return;
+      const handleAddNote = () => {
+        if (!pasteText.trim()) return;
         const newFile = {
           id: 'file-' + Date.now(),
-          name: uploadFileName.trim() ? `${uploadFileName}.txt` : `貼上筆記_${new Date().toLocaleTimeString().slice(0, 5)}.txt`,
-          type: 'txt',
-          size: `${(uploadText.length / 1024).toFixed(1)} KB`,
-          words: uploadText.trim().split(/\s+/).length,
+          name: pasteTitle.trim() ? `${pasteTitle}.txt` : `筆記_${new Date().toLocaleTimeString().slice(0,5)}.txt`,
+          words: pasteText.length,
           active: true,
-          uploadDate: new Date().toISOString().split('T')[0],
-          content: uploadText
+          type: 'txt',
+          content: pasteText
         };
-        setFiles(prev => [newFile, ...prev]);
-        setUploadText('');
-        setUploadFileName('');
-        setIsUploadModalOpen(false);
+        setFiles([newFile, ...files]);
+        setPasteText('');
+        setPasteTitle('');
+        setShowUploadModal(false);
       };
 
-      // 生成學習內容
       const handleGenerate = () => {
-        const activeFiles = files.filter(f => f.active);
-        if (activeFiles.length === 0) {
-          setErrorMsg('請至少選擇 1 個參與分析的檔案！');
-          return;
-        }
-
-        setErrorMsg('');
         setIsLoading(true);
         setCurrentView('workspace');
-        setQuizSubmitted(false);
-        setQuizAnswers({});
-        setFlashcardIndex(0);
-        setFlashcardFlipped(false);
-
         setTimeout(() => {
-          let mockData = {};
           if (selectedMode === 'quiz') {
-            mockData = {
-              mode: 'quiz',
-              title: '【AI 測驗】核心概念與實戰考題 (3 題)',
-              questions: [
-                {
-                  id: 1,
-                  question: '在 Supervised Learning（監督式學習）中，若要預測「連續性數值」（例如房價或溫度），最標準的演算法為何？',
-                  options: ['Logistic Regression', 'Linear Regression', 'K-Means Clustering', 'Support Vector Machine'],
-                  answer: 1,
-                  explanation: 'Linear Regression（線性回歸）專用於擬合連續函數數值；Logistic Regression 主要用於二元分類問題。'
-                },
-                {
-                  id: 2,
-                  question: '模型在訓練資料集 (Training Data) 上精準度極高，但在測試資料集 (Test Data) 表現極差，此現象稱為？',
-                  options: ['Underfitting (欠擬合)', 'Overfitting (過擬合)', 'High Bias', 'Vanishing Gradient'],
-                  answer: 1,
-                  explanation: 'Overfitting 代表模型記憶了訓練集的噪聲，缺乏泛化 (Generalization) 能力。'
-                },
-                {
-                  id: 3,
-                  question: '個體經濟學中，當需求價格彈性 (PED) 大於 1 時（富有彈性），廠商採用「降價策略」會對總收益造成何種影響？',
-                  options: ['總收益減少', '總收益增加', '總收益保持不變', '無法確定'],
-                  answer: 1,
-                  explanation: 'PED > 1 代表消費者對價格敏感，降價帶動的需求數量增加率高於降價幅度，因此能拉高總收益。'
-                }
+            setResult({
+              type: 'quiz',
+              title: '【AI 生成】核心考題模擬',
+              items: [
+                { q: '在 Supervised Learning 中，用於預測「連續性數值」的演算法為？', options: ['Linear Regression', 'Logistic Regression', 'K-Means', 'SVM'], ans: 0 },
+                { q: '當模型在 Training Data 表現極佳，但在 Test Data 誤差極大時稱為？', options: ['Underfitting', 'Overfitting', 'High Bias', 'Zero Gradient'], ans: 1 }
               ]
-            };
+            });
           } else if (selectedMode === 'summary') {
-            mockData = {
-              mode: 'summary',
-              title: '【重點摘要】核心觀念條列與 TL;DR',
-              tldr: '本學習資料整合了機器學習兩大支柱（監督/非監督）與個體經濟學供需彈性模型，適合考前 15 分鐘快速瀏覽。',
-              keyPoints: [
-                { concept: 'Supervised vs. Unsupervised', detail: '監督式學習採用 Labeled Data 進行模型訓練；非監督式學習用於數據分群 (Clustering) 與特徵降維 (PCA)。' },
-                { concept: 'Overfitting 過擬合解決方案', detail: '常見解決技巧包含 L1/L2 Regularization、Dropout 隨機丟棄神經元、以及 Data Augmentation 數據增強。' },
-                { concept: 'Price Elasticity of Demand (PED)', detail: '衡量需求量對價格變動的敏感程度。富有彈性 (PED > 1) 適合促銷，缺乏彈性 (PED < 1) 適合調漲。' }
-              ]
-            };
+            setResult({
+              type: 'summary',
+              title: '【AI 生成】重點觀念摘要 (TL;DR)',
+              content: '1. 機器學習分成監督式（含有標籤）與非監督式（無標籤分群）。\n2. 供需法則中，價格上升會引發需求量下降，均衡點由需求與供給曲線交點決定。'
+            });
           } else if (selectedMode === 'flashcards') {
-            mockData = {
-              mode: 'flashcards',
-              title: '【智慧卡片】核心單字與記憶卡',
-              cards: [
-                { id: 1, front: 'Supervised Learning', back: '監督式學習：利用含有標籤 (Label) 的資料進行訓練，學會從輸入 X 映射到輸出 Y 的規律。' },
-                { id: 2, front: 'Overfitting (過擬合)', back: '模型在訓練集過度擬合，導致在沒看過的測試集上表現不佳。' },
-                { id: 3, front: 'Gradient Descent', back: '梯度下降法：透過計算損失函數 (Loss Function) 對權重的偏微分，逐步更新參數以達到最小化誤差。' },
-                { id: 4, front: 'Market Equilibrium', back: '市場均衡點：供給曲線與需求曲線相交的點，決定市場價格 (P*) 與交易量 (Q*)。' }
-              ]
-            };
-          } else if (selectedMode === 'explainer') {
-            mockData = {
-              mode: 'explainer',
-              title: '【費曼學習法】白話觀念剖析',
-              simpleExplanation: '想像機器學習就像訓練一隻小狗。監督式學習是每次丟球時你都告訴牠「這是球」，看久了牠就學會認球；非監督式學習則是把一堆玩具丟給牠，牠會自動把球放在一堆、骨頭放在另一堆。',
-              analogy: '【過擬合 Overfitting 的比喻】：就像學生把考前衝刺班的 100 道題目與答案死背下來，考題只要數字稍作更動就完全不會寫！'
-            };
-            setChatMessages([{ role: 'model', text: '你好！我是你的專屬 AI 導師。針對目前的學習檔案，有什麼不理解的概念想要討論嗎？' }]);
-          } else if (selectedMode === 'outline') {
-            mockData = {
-              mode: 'outline',
-              title: '【知識樹】階層架構大綱',
-              tree: [
-                {
-                  topic: '1. 機器學習基礎 (Machine Learning Core)',
-                  subtopics: ['1.1 監督式學習：Linear Regression, Logistic Regression, SVM', '1.2 非監督式學習：K-Means 分群, PCA 降維', '1.3 模型評估與過擬合優化 (Regularization, Dropout)']
-                },
-                {
-                  topic: '2. 個體經濟學 (Microeconomics Principles)',
-                  subtopics: ['2.1 供需法則與市場均衡 (Equilibrium)', '2.2 需求價格彈性 (PED) 與收益分析', '2.3 市場結構分類 (完全競爭、獨佔、寡佔)']
-                }
-              ]
-            };
+            setResult({
+              type: 'flashcards',
+              title: '【AI 生成】智慧記憶字卡',
+              front: 'Supervised Learning',
+              back: '監督式學習：利用標註資料 (Labeled Data) 訓練模型，學習由 X 到 Y 的映射關係。'
+            });
+          } else {
+            setResult({
+              type: 'explainer',
+              title: '【AI 導師】費曼白話解說',
+              content: '【用教小狗來比喻機器學習】：\n監督式學習就像是你丟球給小狗，並告訴牠「這是球」（給予標籤）；非監督式學習則是把一整桶玩具放在地上，讓小狗自己把形狀一樣的堆在一起（自主分群）。'
+            });
           }
-
-          setGeneratedResult(mockData);
           setIsLoading(false);
-
-          // 自動加入歷史紀錄
-          const newHistItem = {
-            id: 'h-' + Date.now(),
-            title: mockData.title.replace(/【.*?】/, ''),
-            mode: selectedMode,
-            date: '剛剛'
-          };
-          setHistory(prev => [newHistItem, ...prev]);
-        }, 800);
-      };
-
-      const copyToClipboard = (text) => {
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(text);
-        } else {
-          const textarea = document.createElement('textarea');
-          textarea.value = text;
-          document.body.appendChild(textarea);
-          textarea.select();
-          document.execCommand('copy');
-          document.body.removeChild(textarea);
-        }
-        setCopyNotice(true);
-        setTimeout(() => setCopyNotice(false), 2000);
-      };
-
-      const handleSendChatMessage = () => {
-        if (!chatInput.trim()) return;
-        const msg = chatInput.trim();
-        setChatInput('');
-        setChatMessages(prev => [
-          ...prev, 
-          { role: 'user', text: msg },
-          { role: 'model', text: `關於「${msg}」，在實際應用中這主要取決於資料規模與商業目標。例如在大量數據下，演算法的計算複雜度 (Time Complexity) 會成為主要瓶頸。` }
-        ]);
-      };
-
-      const calculateScore = () => {
-        if (!generatedResult || !generatedResult.questions) return 0;
-        let correct = 0;
-        generatedResult.questions.forEach(q => {
-          if (quizAnswers[q.id] === q.answer) correct++;
-        });
-        return Math.round((correct / generatedResult.questions.length) * 100);
+        }, 700);
       };
 
       return (
-        <div className="flex h-screen w-full overflow-hidden bg-slate-950 text-slate-100">
+        <div className="flex h-screen w-full bg-slate-950 text-slate-100">
           
-          {/* ==================== 1. SIDEBAR NAVBAR ==================== */}
-          <aside className="w-64 bg-slate-900/90 border-r border-slate-800/80 flex flex-col justify-between p-3.5 shrink-0 select-none z-20 backdrop-blur-xl">
-            <div className="space-y-4">
+          {/* 左側邊欄 (SIDEBAR) */}
+          <aside className="w-64 bg-slate-900 border-r border-slate-800 p-4 flex flex-col justify-between shrink-0 select-none">
+            <div className="space-y-6">
               
-              {/* BRAND HEADER */}
+              {/* Logo / 品牌 */}
               <div 
                 onClick={() => setCurrentView('dashboard')}
-                className="flex items-center gap-3 px-2 py-2.5 rounded-xl cursor-pointer hover:bg-slate-800/50 transition-colors group"
+                className="flex items-center gap-3 p-2 rounded-xl cursor-pointer hover:bg-slate-800/60 transition-colors"
               >
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform">
-                  <i data-lucide="brain" className="w-5 h-5 text-white"></i>
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-lg shadow-lg shadow-indigo-500/30">
+                  🧠
                 </div>
                 <div>
-                  <h1 className="font-bold text-sm tracking-wide bg-gradient-to-r from-white via-indigo-100 to-indigo-300 bg-clip-text text-transparent">
+                  <h1 className="font-bold text-sm bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
                     Smart Study Hub
                   </h1>
-                  <span className="text-[10px] text-indigo-400 font-mono flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> AI Assistant v2.5
-                  </span>
+                  <p className="text-[10px] text-indigo-400 font-mono">AI 智慧學習助理</p>
                 </div>
               </div>
 
-              {/* QUICK UPLOAD BUTTON */}
+              {/* 匯入快捷鍵 */}
               <button
-                onClick={() => setIsUploadModalOpen(true)}
-                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer hover:scale-[1.02]"
+                onClick={() => setShowUploadModal(true)}
+                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 font-bold text-xs shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
-                <i data-lucide="plus-circle" className="w-4 h-4"></i>
-                <span>匯入檔案 / 筆記</span>
+                <span>➕ 匯入檔案 / 貼上筆記</span>
               </button>
 
-              {/* MAIN NAVIGATION LINKS */}
-              <nav className="space-y-1 pt-1">
+              {/* 主選單 */}
+              <nav className="space-y-1">
                 <button
                   onClick={() => setCurrentView('dashboard')}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                    currentView === 'dashboard'
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                    currentView === 'dashboard' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800/60'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <i data-lucide="home" className="w-4 h-4"></i>
-                    <span>首頁總覽</span>
-                  </div>
-                  <i data-lucide="chevron-right" className="w-3.5 h-3.5 opacity-60"></i>
+                  <span>🏠</span>
+                  <span>首頁總覽 (Dashboard)</span>
                 </button>
 
                 <button
                   onClick={() => setCurrentView('workspace')}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                    currentView === 'workspace'
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                    currentView === 'workspace' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800/60'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <i data-lucide="sparkles" className="w-4 h-4"></i>
-                    <span>AI 學習工作台</span>
-                  </div>
-                  {generatedResult && (
-                    <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
-                  )}
+                  <span>✨</span>
+                  <span>AI 學習工作台</span>
                 </button>
 
                 <button
                   onClick={() => setCurrentView('library')}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                    currentView === 'library'
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                    currentView === 'library' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800/60'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <i data-lucide="folder" className="w-4 h-4"></i>
-                    <span>文庫與資料夾</span>
+                  <div className="flex items-center gap-3">
+                    <span>📁</span>
+                    <span>我的文庫資料夾</span>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-indigo-300 font-mono border border-slate-700/50">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-indigo-300 font-mono">
                     {files.length}
                   </span>
                 </button>
               </nav>
 
-              {/* RECENT HISTORY LIST */}
+              {/* 近期學習紀錄 */}
               <div className="pt-2">
-                <div className="flex items-center justify-between px-2 mb-2">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <i data-lucide="clock" className="w-3 h-3"></i> 近期學習紀錄
-                  </span>
-                </div>
-                <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
-                  {history.length === 0 ? (
-                    <p className="text-[11px] text-slate-500 px-2">尚無歷程紀錄</p>
-                  ) : (
-                    history.map((item) => (
-                      <div
-                        key={item.id}
-                        onClick={() => {
-                          setCurrentView('workspace');
-                          setSelectedMode(item.mode);
-                        }}
-                        className="p-2 rounded-lg hover:bg-slate-800/60 cursor-pointer text-xs text-slate-300 hover:text-white transition-colors flex items-center justify-between group"
-                      >
-                        <span className="truncate max-w-[130px]">{item.title}</span>
-                        <span className="text-[9px] text-slate-500 font-mono group-hover:text-indigo-400">{item.date}</span>
-                      </div>
-                    ))
-                  )}
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-2">近期學習紀錄</span>
+                <div className="space-y-1 mt-2 text-xs text-slate-400">
+                  <div className="p-2 rounded-lg hover:bg-slate-800/50 cursor-pointer truncate">📝 機器學習模擬測驗</div>
+                  <div className="p-2 rounded-lg hover:bg-slate-800/50 cursor-pointer truncate">⚡ 個體經濟學重點摘要</div>
                 </div>
               </div>
 
             </div>
 
-            {/* SIDEBAR FOOTER: USER & USAGE */}
-            <div className="space-y-3 pt-3 border-t border-slate-800/80">
-              {/* Storage Usage Widget */}
-              <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60 text-[11px] space-y-1.5">
-                <div className="flex justify-between text-slate-400">
-                  <span>AI Context 額度</span>
-                  <span className="font-mono text-indigo-400">12.8k / 128k</span>
-                </div>
-                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full w-[25%] rounded-full"></div>
-                </div>
+            {/* 容量使用顯示 */}
+            <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-[11px] space-y-1">
+              <div className="flex justify-between text-slate-400">
+                <span>AI 上下文容量</span>
+                <span className="text-indigo-400 font-mono">12.8k / 128k</span>
               </div>
-
-              {/* User Profile Info */}
-              <div className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-800/50 cursor-pointer transition-colors">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center font-bold text-xs text-indigo-300">
-                    JD
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-200">Alex Student</h4>
-                    <p className="text-[10px] text-slate-400">Pro Plan Member</p>
-                  </div>
-                </div>
-                <i data-lucide="settings" className="w-4 h-4 text-slate-400 hover:text-white"></i>
+              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div className="w-[10%] h-full bg-indigo-500"></div>
               </div>
             </div>
           </aside>
 
-          {/* ==================== 2. MAIN CONTENT AREA ==================== */}
-          <main className="flex-1 flex flex-col overflow-hidden bg-slate-950">
+          {/* 右側主內容區 */}
+          <main className="flex-1 flex flex-col overflow-hidden">
             
-            {/* TOP HEADER BAR */}
-            <header className="h-14 border-b border-slate-800/80 px-6 flex items-center justify-between shrink-0 bg-slate-900/40 backdrop-blur-md z-10">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setCurrentView('dashboard')}
-                  className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
-                  title="返回首頁"
-                >
-                  <i data-lucide="home" className="w-4 h-4"></i>
-                </button>
+            {/* 頂部 Header */}
+            <header className="h-14 border-b border-slate-800 px-6 flex items-center justify-between bg-slate-900/40">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-200">
+                <span>Smart Study Hub</span>
                 <span className="text-slate-600">/</span>
-                <span className="text-xs font-bold text-slate-200 flex items-center gap-2">
-                  {currentView === 'dashboard' && '首頁總覽 (Dashboard)'}
+                <span className="text-indigo-400">
+                  {currentView === 'dashboard' && '首頁總覽'}
                   {currentView === 'workspace' && 'AI 學習工作台'}
                   {currentView === 'library' && '個人文庫庫房'}
                 </span>
               </div>
 
-              <div className="flex items-center gap-3">
+              {currentView === 'workspace' && (
                 <button
-                  onClick={() => setIsUploadModalOpen(true)}
-                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-1.5 transition-all"
+                  onClick={handleGenerate}
+                  disabled={isLoading}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-xs shadow-lg shadow-indigo-500/20 flex items-center gap-2 cursor-pointer transition-all"
                 >
-                  <i data-lucide="upload" className="w-3.5 h-3.5 text-indigo-400"></i>
-                  <span>上傳檔案</span>
+                  <span>{isLoading ? '⏳ 生成中...' : '🪄 生成學習內容'}</span>
                 </button>
-
-                {currentView === 'workspace' && (
-                  <button
-                    onClick={handleGenerate}
-                    disabled={isLoading}
-                    className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-xs shadow-lg shadow-indigo-500/20 transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
-                  >
-                    {isLoading ? (
-                      <>
-                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        <span>分析中...</span>
-                      </>
-                    ) : (
-                      <>
-                        <i data-lucide="wand-2" className="w-3.5 h-3.5"></i>
-                        <span>生成內容</span>
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
+              )}
             </header>
 
-            {/* ==================== VIEW 1: DASHBOARD (HOME) ==================== */}
+            {/* 1. 首頁總覽 VIEW */}
             {currentView === 'dashboard' && (
-              <div className="flex-1 overflow-y-auto p-8 space-y-8 max-w-6xl mx-auto w-full">
-                
-                {/* HERO BANNER */}
-                <div className="relative rounded-3xl p-8 bg-gradient-to-r from-indigo-900/60 via-slate-900 to-purple-900/40 border border-indigo-500/30 overflow-hidden shadow-2xl">
-                  <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl -z-0"></div>
-                  <div className="relative z-10 max-w-2xl space-y-4">
-                    <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 inline-block">
-                      ✨ 智慧輔學 2.0 系統
-                    </span>
-                    <h2 className="text-2xl md:text-3xl font-extrabold text-white leading-tight">
-                      歡迎回來，準備好提昇今天的學習效率了嗎？
-                    </h2>
-                    <p className="text-xs md:text-sm text-slate-300 leading-relaxed">
-                      透過上傳講義、PDF 或個人筆記，AI 能自動為您產出考題實戰、關鍵字卡與費曼白話講解。
-                    </p>
-                    <div className="flex flex-wrap gap-3 pt-2">
-                      <button
-                        onClick={() => setCurrentView('workspace')}
-                        className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all cursor-pointer"
-                      >
-                        <i data-lucide="play" className="w-4 h-4"></i>
-                        <span>進入 AI 學習工作台</span>
-                      </button>
-                      <button
-                        onClick={() => setIsUploadModalOpen(true)}
-                        className="px-5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 font-bold text-xs flex items-center gap-2 transition-all cursor-pointer"
-                      >
-                        <i data-lucide="file-plus" className="w-4 h-4 text-purple-400"></i>
-                        <span>新增講義筆記</span>
-                      </button>
-                    </div>
+              <div className="flex-1 overflow-y-auto p-8 space-y-8 max-w-5xl mx-auto w-full">
+                <div className="rounded-3xl p-8 bg-gradient-to-r from-indigo-900/50 to-purple-900/30 border border-indigo-500/30 space-y-4">
+                  <h2 className="text-2xl font-extrabold text-white">歡迎使用 Smart AI Study Hub 👋</h2>
+                  <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+                    上傳您的課堂講義、PDF 或個人筆記，讓 AI 自動為您出考題、製作重點摘要與 3D 記憶字卡！
+                  </p>
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => setCurrentView('workspace')}
+                      className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
+                    >
+                      開啟 AI 工作台
+                    </button>
+                    <button
+                      onClick={() => setShowUploadModal(true)}
+                      className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition-all cursor-pointer"
+                    >
+                      匯入新筆記
+                    </button>
                   </div>
                 </div>
 
-                {/* STATS CARDS */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                  <div className="glass-card rounded-2xl p-5 border border-slate-800/80 space-y-2">
-                    <div className="flex items-center justify-between text-slate-400">
-                      <span className="text-xs font-semibold">文庫檔案總數</span>
-                      <i data-lucide="files" className="w-4 h-4 text-indigo-400"></i>
-                    </div>
-                    <div className="text-2xl font-bold text-white font-mono">{files.length} 本文件</div>
-                    <p className="text-[11px] text-slate-400">已累積約 {files.reduce((a,b)=>a+b.words,0)} 字 Context</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-2">
+                    <span className="text-xs text-slate-400">已匯入講義數量</span>
+                    <div className="text-2xl font-bold font-mono text-indigo-400">{files.length} 份文件</div>
                   </div>
-
-                  <div className="glass-card rounded-2xl p-5 border border-slate-800/80 space-y-2">
-                    <div className="flex items-center justify-between text-slate-400">
-                      <span className="text-xs font-semibold">生成學習考題數</span>
-                      <i data-lucide="check-circle-2" className="w-4 h-4 text-emerald-400"></i>
-                    </div>
-                    <div className="text-2xl font-bold text-white font-mono">28 道題目</div>
-                    <p className="text-[11px] text-emerald-400 font-mono">平均正確率 85%</p>
+                  <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-2">
+                    <span className="text-xs text-slate-400">累積演練考題</span>
+                    <div className="text-2xl font-bold font-mono text-purple-400">18 題</div>
                   </div>
-
-                  <div className="glass-card rounded-2xl p-5 border border-slate-800/80 space-y-2">
-                    <div className="flex items-center justify-between text-slate-400">
-                      <span className="text-xs font-semibold">累積記憶卡片</span>
-                      <i data-lucide="layers" className="w-4 h-4 text-purple-400"></i>
-                    </div>
-                    <div className="text-2xl font-bold text-white font-mono">42 張 Flashcards</div>
-                    <p className="text-[11px] text-purple-300">已熟悉 34 張觀念卡</p>
+                  <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-2">
+                    <span className="text-xs text-slate-400">智慧字卡庫</span>
+                    <div className="text-2xl font-bold font-mono text-emerald-400">24 張</div>
                   </div>
                 </div>
-
-                {/* FEATURED MODES */}
-                <div className="space-y-4">
-                  <h3 className="text-sm font-bold text-slate-200 flex items-center gap-2">
-                    <i data-lucide="grid" className="w-4 h-4 text-indigo-400"></i>
-                    選擇學習模式
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {STUDY_MODES.map((mode) => (
-                      <div
-                        key={mode.id}
-                        onClick={() => {
-                          setSelectedMode(mode.id);
-                          setCurrentView('workspace');
-                        }}
-                        className="glass-card glass-card-hover rounded-2xl p-5 border border-slate-800/80 cursor-pointer space-y-3 group"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className={`p-2.5 rounded-xl bg-gradient-to-br ${mode.color} text-white shadow-md`}>
-                            <i data-lucide={mode.icon} className="w-5 h-5"></i>
-                          </div>
-                          <span className="text-[10px] px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-medium">
-                            {mode.badge}
-                          </span>
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-bold text-slate-100 group-hover:text-indigo-300 transition-colors">{mode.title}</h4>
-                          <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">{mode.subtitle}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
               </div>
             )}
 
-            {/* ==================== VIEW 2: AI WORKSPACE ==================== */}
+            {/* 2. 工作台 VIEW */}
             {currentView === 'workspace' && (
               <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
                 
-                {/* LEFT CONFIG PANEL */}
-                <div className="w-full lg:w-4/12 border-r border-slate-800/80 p-5 overflow-y-auto space-y-5 bg-slate-900/30 shrink-0">
+                {/* 左側設定區 */}
+                <div className="w-full lg:w-80 border-r border-slate-800 p-4 space-y-4 overflow-y-auto bg-slate-900/20">
                   
-                  {/* STEP 1: Context Files Selection */}
-                  <div className="glass-card rounded-2xl p-4 space-y-3 border border-slate-800">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-xs font-bold text-slate-200 flex items-center gap-2">
-                        <i data-lucide="file-check" className="w-4 h-4 text-indigo-400"></i>
-                        1. 勾選分析檔案 ({files.filter(f=>f.active).length}/{files.length})
-                      </h3>
-                      <button 
-                        onClick={() => setIsUploadModalOpen(true)}
-                        className="text-[10px] text-indigo-400 hover:text-indigo-300 font-semibold"
-                      >
-                        + 上傳新檔
-                      </button>
-                    </div>
-                    
-                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                      {files.map(file => (
-                        <div
-                          key={file.id}
-                          onClick={() => toggleFileActive(file.id)}
-                          className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all ${
-                            file.active 
-                              ? 'bg-indigo-950/40 border-indigo-500/50 text-indigo-200' 
-                              : 'bg-slate-900/60 border-slate-800 text-slate-400 opacity-60'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <input 
-                              type="checkbox" 
-                              checked={file.active} 
-                              onChange={() => {}} 
-                              className="rounded border-slate-700 text-indigo-600 focus:ring-0" 
+                  {/* 1. 檔案勾選 */}
+                  <div className="glass-card p-4 rounded-2xl space-y-3 border border-slate-800">
+                    <div className="text-xs font-bold text-slate-200">1. 選擇參與分析檔案</div>
+                    <div className="space-y-2">
+                      {files.map(f => (
+                        <label key={f.id} className="flex items-center justify-between p-2 rounded-xl bg-slate-950/60 border border-slate-800 text-xs cursor-pointer hover:border-indigo-500/50">
+                          <div className="flex items-center gap-2 truncate">
+                            <input
+                              type="checkbox"
+                              checked={f.active}
+                              onChange={() => setFiles(files.map(x => x.id === f.id ? {...x, active: !x.active} : x))}
+                              className="accent-indigo-600"
                             />
-                            <span className="text-xs truncate font-medium">{file.name}</span>
+                            <span className="truncate">{f.name}</span>
                           </div>
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800/80 text-slate-400 font-mono">
-                            {file.words} 字
-                          </span>
-                        </div>
+                          <span className="text-[10px] text-slate-500 font-mono">{f.words}字</span>
+                        </label>
                       ))}
                     </div>
                   </div>
 
-                  {/* STEP 2: Mode Selector */}
-                  <div className="space-y-2.5">
-                    <h3 className="text-xs font-bold text-slate-200 flex items-center gap-2">
-                      <i data-lucide="sliders" className="w-4 h-4 text-indigo-400"></i>
-                      2. 選擇生成學習模式
-                    </h3>
-                    <div className="grid grid-cols-1 gap-2">
-                      {STUDY_MODES.map(mode => (
+                  {/* 2. 學習模式 */}
+                  <div className="glass-card p-4 rounded-2xl space-y-3 border border-slate-800">
+                    <div className="text-xs font-bold text-slate-200">2. 選擇學習模式</div>
+                    <div className="space-y-2">
+                      {STUDY_MODES.map(m => (
                         <div
-                          key={mode.id}
-                          onClick={() => setSelectedMode(mode.id)}
-                          className={`p-3 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
-                            selectedMode === mode.id 
-                              ? 'bg-indigo-950/60 border-indigo-500 ring-1 ring-indigo-500/50' 
-                              : 'bg-slate-900/50 border-slate-800/80 hover:bg-slate-800/40'
+                          key={m.id}
+                          onClick={() => setSelectedMode(m.id)}
+                          className={`p-3 rounded-xl border text-xs cursor-pointer transition-all ${
+                            selectedMode === m.id ? 'border-indigo-500 bg-indigo-950/50 text-white' : 'border-slate-800 bg-slate-950/40 text-slate-400'
                           }`}
                         >
-                          <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-xl bg-gradient-to-br ${mode.color} text-white shrink-0`}>
-                              <i data-lucide={mode.icon} className="w-4 h-4"></i>
-                            </div>
-                            <div>
-                              <h4 className="text-xs font-bold text-slate-100">{mode.title}</h4>
-                              <p className="text-[11px] text-slate-400">{mode.subtitle}</p>
-                            </div>
+                          <div className="font-bold flex items-center gap-2">
+                            <span>{m.icon}</span>
+                            <span>{m.title}</span>
                           </div>
-                          {selectedMode === mode.id && (
-                            <i data-lucide="check" className="w-4 h-4 text-indigo-400"></i>
-                          )}
+                          <div className="text-[10px] text-slate-400 mt-1">{m.subtitle}</div>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  {/* STEP 3: Prompt Customization */}
-                  <div className="glass-card rounded-2xl p-4 space-y-3 border border-slate-800">
-                    <h3 className="text-xs font-bold text-slate-200 flex items-center gap-2">
-                      <i data-lucide="wand-2" className="w-4 h-4 text-purple-400"></i>
-                      3. AI 指令 Prompt 調整
-                    </h3>
-                    
-                    <div className="flex flex-wrap gap-1.5">
-                      {PROMPT_PRESETS.map((preset, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => {
-                            if (!customPrompt.includes(preset)) {
-                              setCustomPrompt(prev => prev ? `${prev} ${preset}` : preset);
-                            }
-                          }}
-                          className="text-[10px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-indigo-600/30 border border-slate-700/80 text-slate-300 transition-colors cursor-pointer"
-                        >
-                          + {preset}
-                        </button>
-                      ))}
-                    </div>
-
+                  {/* 3. Prompt */}
+                  <div className="glass-card p-4 rounded-2xl space-y-3 border border-slate-800">
+                    <div className="text-xs font-bold text-slate-200">3. 自訂指令 Prompt</div>
                     <textarea
                       value={customPrompt}
-                      onChange={(e) => setCustomPrompt(e.target.value)}
+                      onChange={e => setCustomPrompt(e.target.value)}
                       rows="3"
-                      placeholder="自訂提示詞需求..."
-                      className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-indigo-500/80 resize-none"
+                      className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
                     ></textarea>
                   </div>
 
-                  {errorMsg && (
-                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-                      <i data-lucide="alert-circle" className="w-4 h-4 shrink-0"></i>
-                      <span>{errorMsg}</span>
-                    </div>
-                  )}
                 </div>
 
-                {/* RIGHT RESULT PANEL */}
-                <div className="flex-1 p-6 overflow-y-auto bg-slate-950 flex flex-col">
-                  
-                  {!generatedResult && !isLoading && (
-                    <div className="m-auto text-center max-w-md space-y-4 py-12">
-                      <div className="w-16 h-16 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto text-indigo-400">
-                        <i data-lucide="sparkles" className="w-8 h-8"></i>
-                      </div>
-                      <h3 className="text-base font-bold text-slate-200">準備好體驗 AI 智慧學習了嗎？</h3>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        請確認左側已勾選學習檔案，選擇您要的模式（如考題、摘要或記憶卡）並點擊上方「生成內容」。
-                      </p>
-                    </div>
-                  )}
-
+                {/* 右側結果展現區 */}
+                <div className="flex-1 p-6 overflow-y-auto bg-slate-950">
                   {isLoading && (
-                    <div className="m-auto text-center py-16 space-y-4">
-                      <div className="relative w-12 h-12 mx-auto">
-                        <div className="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
-                      </div>
-                      <p className="text-xs text-indigo-300 font-semibold animate-pulse">
-                        AI 正為您深度解析講義重點與生成內容...
-                      </p>
+                    <div className="text-center py-20 space-y-3">
+                      <div className="text-2xl animate-spin">🌀</div>
+                      <div className="text-xs text-indigo-400 font-semibold">AI 正在深度分析文件與生成內容...</div>
                     </div>
                   )}
 
-                  {generatedResult && !isLoading && (
-                    <div className="space-y-6 max-w-3xl mx-auto w-full">
-                      
-                      {/* RESULT HEADER */}
-                      <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between">
-                        <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                          <i data-lucide="file-check-2" className="w-4 h-4 text-emerald-400"></i>
-                          {generatedResult.title}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => copyToClipboard(JSON.stringify(generatedResult, null, 2))}
-                            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold text-slate-300 flex items-center gap-1.5 transition-colors cursor-pointer"
-                          >
-                            <i data-lucide="copy" className="w-3.5 h-3.5"></i>
-                            <span>{copyNotice ? '已複製！' : '複製內容'}</span>
-                          </button>
-                        </div>
-                      </div>
+                  {!isLoading && !result && (
+                    <div className="text-center py-24 text-slate-500 space-y-2">
+                      <div className="text-3xl opacity-50">✨</div>
+                      <div className="text-xs">請點擊右上角「生成學習內容」按鈕開始！</div>
+                    </div>
+                  )}
 
-                      {/* MODE 1: QUIZ */}
-                      {generatedResult.mode === 'quiz' && (
-                        <div className="space-y-4">
-                          {quizSubmitted && (
-                            <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-950 to-purple-950 border border-indigo-500/40 flex items-center justify-between shadow-xl">
-                              <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-indigo-600/30 border border-indigo-400/40 flex items-center justify-center text-xl font-bold text-white font-mono">
-                                  {calculateScore()}
-                                </div>
-                                <div>
-                                  <h4 className="text-xs font-bold text-indigo-200">測驗完成度得分</h4>
-                                  <p className="text-[11px] text-slate-400">已自動紀錄答案至個人學習評估</p>
-                                </div>
-                              </div>
-                              <button 
-                                onClick={() => { setQuizSubmitted(false); setQuizAnswers({}); }}
-                                className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-colors cursor-pointer"
-                              >
-                                重新測驗
-                              </button>
-                            </div>
-                          )}
+                  {!isLoading && result && (
+                    <div className="max-w-2xl mx-auto space-y-4">
+                      <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+                        <h3 className="font-bold text-sm text-indigo-300">{result.title}</h3>
 
-                          {generatedResult.questions.map((q, idx) => (
-                            <div key={q.id} className="glass-card rounded-2xl p-5 space-y-3 border border-slate-800/80">
-                              <h4 className="text-xs font-bold text-slate-100 leading-relaxed">
-                                Q{idx + 1}. {q.question}
-                              </h4>
-                              <div className="space-y-2 pt-1">
-                                {q.options.map((opt, optIdx) => {
-                                  const isSelected = quizAnswers[q.id] === optIdx;
-                                  const isCorrect = q.answer === optIdx;
-                                  let styleClass = 'bg-slate-900/80 border-slate-800 hover:border-slate-700 text-slate-300';
-                                  
-                                  if (isSelected) {
-                                    styleClass = 'bg-indigo-600/20 border-indigo-500 text-indigo-200 font-medium';
-                                  }
-                                  if (quizSubmitted) {
-                                    if (isCorrect) styleClass = 'bg-emerald-500/20 border-emerald-500 text-emerald-200 font-bold';
-                                    else if (isSelected && !isCorrect) styleClass = 'bg-rose-500/20 border-rose-500 text-rose-200';
-                                  }
-
-                                  return (
-                                    <button
-                                      key={optIdx}
-                                      onClick={() => !quizSubmitted && setQuizAnswers({ ...quizAnswers, [q.id]: optIdx })}
-                                      className={`w-full p-3 rounded-xl border text-left text-xs transition-all flex items-center justify-between ${styleClass}`}
-                                    >
-                                      <span>{opt}</span>
-                                      {quizSubmitted && isCorrect && <i data-lucide="check-circle" className="w-4 h-4 text-emerald-400 shrink-0"></i>}
+                        {/* QUIZ */}
+                        {result.type === 'quiz' && (
+                          <div className="space-y-4">
+                            {result.items.map((item, idx) => (
+                              <div key={idx} className="p-4 bg-slate-950 rounded-xl space-y-3 border border-slate-800">
+                                <div className="text-xs font-bold">Q{idx+1}. {item.q}</div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                  {item.options.map((opt, oIdx) => (
+                                    <button key={oIdx} className="p-2.5 border border-slate-800 rounded-xl text-xs text-left hover:border-indigo-500 hover:bg-indigo-950/30 transition-all">
+                                      {opt}
                                     </button>
-                                  );
-                                })}
-                              </div>
-
-                              {quizSubmitted && (
-                                <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-slate-300 space-y-1">
-                                  <span className="font-bold text-indigo-400">解析詳解：</span>
-                                  <p>{q.explanation}</p>
+                                  ))}
                                 </div>
-                              )}
-                            </div>
-                          ))}
-
-                          {!quizSubmitted && (
-                            <button
-                              onClick={() => setQuizSubmitted(true)}
-                              className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/25 transition-all cursor-pointer"
-                            >
-                              送出測驗答案
-                            </button>
-                          )}
-                        </div>
-                      )}
-
-                      {/* MODE 2: SUMMARY */}
-                      {generatedResult.mode === 'summary' && (
-                        <div className="space-y-4">
-                          <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-950/60 to-cyan-950/40 border border-blue-500/30 text-xs text-blue-200 leading-relaxed space-y-1">
-                            <span className="font-bold text-cyan-300 uppercase tracking-wider text-[10px]">TL;DR 核心速覽</span>
-                            <p>{generatedResult.tldr}</p>
-                          </div>
-
-                          <div className="space-y-3">
-                            {generatedResult.keyPoints.map((kp, idx) => (
-                              <div key={idx} className="glass-card rounded-2xl p-4 border border-slate-800/80 space-y-2">
-                                <h4 className="text-xs font-bold text-indigo-300 flex items-center gap-2">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
-                                  {kp.concept}
-                                </h4>
-                                <p className="text-xs text-slate-300 leading-relaxed pl-3.5 border-l border-slate-800">
-                                  {kp.detail}
-                                </p>
                               </div>
                             ))}
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {/* MODE 3: FLASHCARDS */}
-                      {generatedResult.mode === 'flashcards' && (
-                        <div className="space-y-4 text-center">
-                          <div className="perspective-1000 w-full h-72">
-                            <div
-                              onClick={() => setFlashcardFlipped(!flashcardFlipped)}
-                              className={`relative w-full h-full rounded-3xl cursor-pointer transform-style-3d ${flashcardFlipped ? 'rotate-y-180' : ''}`}
-                            >
-                              {/* FRONT */}
-                              <div className="absolute inset-0 w-full h-full rounded-3xl glass-card p-8 flex flex-col justify-between items-center backface-hidden border border-indigo-500/30 bg-slate-900 shadow-2xl">
-                                <span className="text-[10px] px-2.5 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                                  卡片正面 (點擊翻轉)
-                                </span>
-                                <h3 className="text-lg font-bold text-slate-100 max-w-md">
-                                  {generatedResult.cards[flashcardIndex]?.front}
-                                </h3>
-                                <span className="text-[11px] text-slate-500">
-                                  卡片 {flashcardIndex + 1} / {generatedResult.cards.length}
-                                </span>
+                        {/* SUMMARY / EXPLAINER */}
+                        {(result.type === 'summary' || result.type === 'explainer') && (
+                          <div className="p-4 bg-slate-950 rounded-xl text-xs leading-relaxed text-slate-300 whitespace-pre-line border border-slate-800">
+                            {result.content}
+                          </div>
+                        )}
+
+                        {/* FLASHCARDS */}
+                        {result.type === 'flashcards' && (
+                          <div className="perspective-1000 w-full h-48 cursor-pointer" onClick={() => setCardFlipped(!cardFlipped)}>
+                            <div className={`relative w-full h-full transform-style-3d ${cardFlipped ? 'rotate-y-180' : ''}`}>
+                              <div className="absolute inset-0 glass-card rounded-2xl p-6 flex flex-col justify-between items-center backface-hidden border border-indigo-500/30">
+                                <span className="text-[10px] text-indigo-400 font-mono">卡片正面</span>
+                                <h4 className="font-bold text-base text-white">{result.front}</h4>
+                                <span className="text-[10px] text-slate-500">點擊翻轉查看答案</span>
                               </div>
-
-                              {/* BACK */}
-                              <div className="absolute inset-0 w-full h-full rounded-3xl glass-card p-8 flex flex-col justify-between items-center backface-hidden rotate-y-180 border border-emerald-500/40 bg-slate-900 shadow-2xl">
-                                <span className="text-[10px] px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                  觀念解析 (點擊翻轉)
-                                </span>
-                                <p className="text-xs text-slate-200 leading-relaxed max-w-md">
-                                  {generatedResult.cards[flashcardIndex]?.back}
-                                </p>
-                                <span className="text-[11px] text-slate-500">
-                                  卡片 {flashcardIndex + 1} / {generatedResult.cards.length}
-                                </span>
+                              <div className="absolute inset-0 glass-card rounded-2xl p-6 flex flex-col justify-between items-center backface-hidden rotate-y-180 border border-emerald-500/30">
+                                <span className="text-[10px] text-emerald-400 font-mono">觀念解析</span>
+                                <p className="text-xs text-slate-200 text-center">{result.back}</p>
+                                <span className="text-[10px] text-slate-500">點擊翻轉</span>
                               </div>
                             </div>
                           </div>
+                        )}
 
-                          {/* CONTROLS */}
-                          <div className="flex items-center justify-center gap-4 pt-2">
-                            <button
-                              disabled={flashcardIndex === 0}
-                              onClick={() => { setFlashcardIndex(prev => prev - 1); setFlashcardFlipped(false); }}
-                              className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 disabled:opacity-40 transition-all cursor-pointer"
-                            >
-                              <i data-lucide="chevron-left" className="w-5 h-5"></i>
-                            </button>
-                            <span className="text-xs font-mono text-slate-400">
-                              {flashcardIndex + 1} of {generatedResult.cards.length}
-                            </span>
-                            <button
-                              disabled={flashcardIndex === generatedResult.cards.length - 1}
-                              onClick={() => { setFlashcardIndex(prev => prev + 1); setFlashcardFlipped(false); }}
-                              className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 disabled:opacity-40 transition-all cursor-pointer"
-                            >
-                              <i data-lucide="chevron-right" className="w-5 h-5"></i>
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* MODE 4: EXPLAINER / CHAT */}
-                      {generatedResult.mode === 'explainer' && (
-                        <div className="space-y-4">
-                          <div className="glass-card rounded-2xl p-5 border border-slate-800 space-y-2">
-                            <h4 className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
-                              <i data-lucide="smile" className="w-4 h-4"></i>
-                              費曼白話比喻 (EL5)
-                            </h4>
-                            <p className="text-xs text-slate-200 leading-relaxed">{generatedResult.simpleExplanation}</p>
-                          </div>
-
-                          <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
-                            <h4 className="text-xs font-bold text-slate-200 flex items-center gap-2">
-                              <i data-lucide="messages-square" className="w-4 h-4 text-indigo-400"></i>
-                              AI 導師問答對話
-                            </h4>
-
-                            <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-                              {chatMessages.map((m, i) => (
-                                <div
-                                  key={i}
-                                  className={`p-3 rounded-2xl text-xs max-w-[85%] leading-relaxed ${
-                                    m.role === 'user'
-                                      ? 'bg-indigo-600 text-white ml-auto rounded-tr-none'
-                                      : 'bg-slate-800 text-slate-200 border border-slate-700/60 rounded-tl-none'
-                                  }`}
-                                >
-                                  {m.text}
-                                </div>
-                              ))}
-                            </div>
-
-                            <div className="flex gap-2 pt-2 border-t border-slate-800">
-                              <input
-                                type="text"
-                                value={chatInput}
-                                onChange={e => setChatInput(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && handleSendChatMessage()}
-                                placeholder="對這個概念提出進一步問題..."
-                                className="flex-1 p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
-                              />
-                              <button
-                                onClick={handleSendChatMessage}
-                                className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-colors cursor-pointer shrink-0"
-                              >
-                                發送
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* MODE 5: OUTLINE */}
-                      {generatedResult.mode === 'outline' && (
-                        <div className="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
-                          {generatedResult.tree.map((node, idx) => (
-                            <div key={idx} className="p-4 rounded-xl bg-slate-900/80 border border-slate-800/80 space-y-2">
-                              <h4 className="text-xs font-bold text-indigo-300 flex items-center gap-2">
-                                <i data-lucide="folder-tree" className="w-4 h-4"></i>
-                                {node.topic}
-                              </h4>
-                              <div className="space-y-1.5 pl-6">
-                                {node.subtopics.map((sub, sIdx) => (
-                                  <div key={sIdx} className="text-xs text-slate-300 flex items-center gap-2">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
-                                    <span>{sub}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
+                      </div>
                     </div>
                   )}
-
                 </div>
+
               </div>
             )}
 
-            {/* ==================== VIEW 3: LIBRARY ==================== */}
+            {/* 3. 我的文庫 VIEW */}
             {currentView === 'library' && (
-              <div className="flex-1 overflow-y-auto p-8 space-y-6 max-w-5xl mx-auto w-full">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                  <div>
-                    <h2 className="text-lg font-bold text-white">個人文庫庫房 ({files.length})</h2>
-                    <p className="text-xs text-slate-400">管理所有參與 AI 知識檢索 Context 的筆記與講義文件</p>
-                  </div>
-                  <button
-                    onClick={() => setIsUploadModalOpen(true)}
-                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-2 transition-all cursor-pointer"
-                  >
-                    <i data-lucide="plus" className="w-4 h-4"></i>
-                    <span>新增檔案</span>
-                  </button>
+              <div className="flex-1 overflow-y-auto p-8 max-w-4xl mx-auto w-full space-y-4">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-sm font-bold text-slate-200">我的文庫檔案 ({files.length})</h2>
+                  <button onClick={() => setShowUploadModal(true)} className="px-3 py-1.5 rounded-lg bg-indigo-600 text-xs font-bold">➕ 新增筆記</button>
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {files.map(f => (
-                    <div key={f.id} className="glass-card rounded-2xl p-5 border border-slate-800/80 flex flex-col justify-between space-y-4">
-                      <div className="space-y-2">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <i data-lucide="file-text" className="w-5 h-5 text-indigo-400 shrink-0"></i>
-                            <h4 className="text-xs font-bold text-slate-100 truncate">{f.name}</h4>
-                          </div>
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 uppercase font-mono border border-slate-700/50">
-                            {f.type}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed bg-slate-950/60 p-2.5 rounded-xl font-mono">
-                          {f.content}
-                        </p>
+                    <div key={f.id} className="glass-card p-4 rounded-2xl border border-slate-800 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-xs truncate">{f.name}</span>
+                        <button onClick={() => setFiles(files.filter(x => x.id !== f.id))} className="text-rose-400 text-xs">刪除</button>
                       </div>
-
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-[11px] text-slate-500">
-                        <span>{f.size} • 約 {f.words} 字</span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => toggleFileActive(f.id)}
-                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${
-                              f.active ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/40' : 'bg-slate-800 text-slate-400'
-                            }`}
-                          >
-                            {f.active ? '已勾選分析' : '未勾選'}
-                          </button>
-                          <button 
-                            onClick={() => deleteFile(f.id)} 
-                            className="p-1 hover:text-rose-400 transition-colors"
-                            title="刪除"
-                          >
-                            <i data-lucide="trash-2" className="w-4 h-4"></i>
-                          </button>
-                        </div>
-                      </div>
+                      <p className="text-[11px] text-slate-400 line-clamp-3 bg-slate-950/60 p-2 rounded-lg font-mono">{f.content}</p>
+                      <div className="text-[10px] text-slate-500 pt-1">{f.words} 字</div>
                     </div>
                   ))}
                 </div>
@@ -1185,85 +432,29 @@
 
           </main>
 
-          {/* ==================== FILE UPLOAD MODAL ==================== */}
-          {isUploadModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-              <div className="glass-card w-full max-w-xl rounded-3xl p-6 border border-slate-800 space-y-5 shadow-2xl">
-                
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <i data-lucide="upload-cloud" className="w-5 h-5 text-indigo-400"></i>
-                    匯入學習講義與筆記
-                  </h3>
-                  <button 
-                    onClick={() => setIsUploadModalOpen(false)}
-                    className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"
-                  >
-                    <i data-lucide="x" className="w-5 h-5"></i>
-                  </button>
+          {/* 上傳 Modal */}
+          {showUploadModal && (
+            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="glass-card w-full max-w-md p-6 rounded-3xl border border-slate-800 space-y-4">
+                <h3 className="font-bold text-sm text-slate-200">新增文字筆記到文庫</h3>
+                <input
+                  type="text"
+                  placeholder="標題 (選填)..."
+                  value={pasteTitle}
+                  onChange={e => setPasteTitle(e.target.value)}
+                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none"
+                />
+                <textarea
+                  rows="5"
+                  placeholder="在此貼上課堂講義或筆記內容..."
+                  value={pasteText}
+                  onChange={e => setPasteText(e.target.value)}
+                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none"
+                ></textarea>
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => setShowUploadModal(false)} className="px-3 py-1.5 text-xs text-slate-400">取消</button>
+                  <button onClick={handleAddNote} className="px-4 py-1.5 bg-indigo-600 rounded-xl text-xs font-bold text-white">加入文庫</button>
                 </div>
-
-                {/* DRAG & DROP BOX */}
-                <div
-                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                  onDragLeave={() => setIsDragging(false)}
-                  onDrop={(e) => { e.preventDefault(); handleFileUpload(e); }}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
-                    isDragging ? 'border-indigo-500 bg-indigo-500/10' : 'border-slate-800 hover:border-slate-700 bg-slate-900/40'
-                  }`}
-                >
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileUpload}
-                    multiple
-                    accept=".pdf,.txt,.doc,.docx,.md"
-                    className="hidden"
-                  />
-                  <i data-lucide="file-up" className="w-10 h-10 text-indigo-400 mx-auto mb-3"></i>
-                  <p className="text-xs font-bold text-slate-200">點擊選擇檔案，或拖曳檔案至此處</p>
-                  <p className="text-[11px] text-slate-500 mt-1">支援 PDF, TXT, DOCX, Markdown (上限 20MB)</p>
-                </div>
-
-                <div className="relative flex items-center justify-center">
-                  <div className="border-t border-slate-800 w-full"></div>
-                  <span className="bg-slate-900 px-3 text-[11px] text-slate-500 font-semibold absolute">或手動貼上文字</span>
-                </div>
-
-                {/* MANUAL TEXT AREA */}
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    placeholder="自訂講義名稱 (例如：個體經濟學筆記)"
-                    value={uploadFileName}
-                    onChange={(e) => setUploadFileName(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
-                  />
-                  <textarea
-                    rows="4"
-                    placeholder="在此貼上筆記段落或純文字內容..."
-                    value={uploadText}
-                    onChange={(e) => setUploadText(e.target.value)}
-                    className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 resize-none"
-                  ></textarea>
-                </div>
-
-                <div className="flex items-center justify-end gap-3 pt-2">
-                  <button
-                    onClick={() => setIsUploadModalOpen(false)}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white"
-                  >
-                    取消
-                  </button>
-                  <button
-                    onClick={handleAddManualText}
-                    className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all"
-                  >
-                    新增至文庫
-                  </button>
-                </div>
-
               </div>
             </div>
           )}
@@ -1275,4 +466,4 @@
     ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
 </body>
-</html>
+</html></html>
