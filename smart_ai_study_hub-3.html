@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart AI Study Hub - 智慧學習助理平台</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- React & React-DOM CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Babel Standalone CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+    
+    body {
+      font-family: 'Plus Jakarta Sans', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #090d16;
+      color: #f8fafc;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    /* 3D Flashcard Animation Styles */
+    .perspective-1000 {
+      perspective: 1000px;
+    }
+    .transform-style-3d {
+      transform-style: preserve-3d;
+      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .rotate-y-180 {
+      transform: rotateY(180deg);
+    }
+    .backface-hidden {
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+
+    /* Glassmorphism Styles */
+    .glass-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  </style>
+</head>
+<body class="h-screen overflow-hidden flex flex-col bg-slate-950 text-slate-100">
+
+  <div id="root" class="h-full w-full"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // 學習模式定義
+    const STUDY_MODES = [
+      {
+        id: 'quiz',
+        title: '測驗與考題生成',
+        subtitle: '單選題、觀念題與實戰評測',
+        badge: '模擬測驗'
+      },
+      {
+        id: 'summary',
+        title: '重點整理與深度剖析',
+        subtitle: '詳盡核心概念、運作機制與考題陷阱整理',
+        badge: '深度重點'
+      },
+      {
+        id: 'flashcards',
+        title: '智慧字卡 (Flashcards)',
+        subtitle: '雙面翻轉記憶與間隔重複記憶',
+        badge: '記憶卡片'
+      },
+      {
+        id: 'explainer',
+        title: '費曼觀念與 AI 導師',
+        subtitle: '白話比喻解說與互動式問答',
+        badge: '白話講解'
+      },
+      {
+        id: 'outline',
+        title: '知識樹與條列大綱',
+        subtitle: '系統化階層結構與脈絡心智圖',
+        badge: '架構分析'
+      }
+    ];
+
+    function App() {
+      const [currentView, setCurrentView] = useState('workspace');
+      
+      // 側欄收合狀態 (sidebarCollapsed)
+      const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+      const [files, setFiles] = useState(() => {
+        const saved = localStorage.getItem('study_hub_files');
+        return saved ? JSON.parse(saved) : [];
+      });
+
+      const [history, setHistory] = useState(() => {
+        const saved = localStorage.getItem('study_hub_history');
+        return saved ? JSON.parse(saved) : [];
+      });
+
+      const [selectedMode, setSelectedMode] = useState('quiz');
+      const [questionCount, setQuestionCount] = useState(5);
+      const [customPrompt, setCustomPrompt] = useState('專有名詞保留英文，幫我製作適合考前複習的內容。');
+      
+      const [isLoading, setIsLoading] = useState(false);
+      const [generatedResult, setGeneratedResult] = useState(null);
+      const [errorMsg, setErrorMsg] = useState('');
+      const [copyNotice, setCopyNotice] = useState(false);
+
+      // 上傳 Modal 狀態
+      const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+      const [uploadText, setUploadText] = useState('');
+      const [uploadFileName, setUploadFileName] = useState('');
+
+      // 測驗答題狀態：全做完才顯示答案
+      const [quizAnswers, setQuizAnswers] = useState({});
+      const [quizSubmitted, setQuizSubmitted] = useState(false);
+
+      // 卡片狀態
+      const [flashcardIndex, setFlashcardIndex] = useState(0);
+      const [flashcardFlipped, setFlashcardFlipped] = useState(false);
+
+      const fileInputRef = useRef(null);
+
+      useEffect(() => {
+        localStorage.setItem('study_hub_files', JSON.stringify(files));
+      }, [files]);
+
+      useEffect(() => {
+        localStorage.setItem('study_hub_history', JSON.stringify(history));
+      }, [history]);
+
+      useEffect(() => {
+        if (window.lucide) {
+          try { window.lucide.createIcons(); } catch(e) {}
+        }
+      });
+
+      const toggleFileActive = (id) => {
+        setFiles(files.map(f => f.id === id ? { ...f, active: !f.active } : f));
+      };
+
+      const deleteFile = (id) => {
+        setFiles(files.filter(f => f.id !== id));
+      };
+
+      const clearAllHistory = () => {
+        setHistory([]);
+      };
+
+      const handleFileUpload = (e) => {
+        const fileList = e.target.files;
+        if (!fileList || fileList.length === 0) return;
+
+        Array.from(fileList).forEach(file => {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const content = event.target.result;
+            const newFile = {
+              id: 'file-' + Date.now() + Math.random().toString(36).substring(2, 5),
+              name: file.name,
+              type: file.name.split('.').pop().toLowerCase() || 'txt',
+              size: file.size > 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : `${(file.size / 1024).toFixed(1)} KB`,
+              words: content ? content.toString().split(/\s+/).filter(Boolean).length : 0,
+              active: true,
+              uploadDate: new Date().toISOString().split('T')[0],
+              content: content || '（檔案內容解析成功）'
+            };
+            setFiles(prev => [newFile, ...prev]);
+          };
+          
+          if (file.type.startsWith('text/') || file.name.endsWith('.txt') || file.name.endsWith('.md') || file.name.endsWith('.json') || file.name.endsWith('.csv')) {
+            reader.readAsText(file);
+          } else {
+            const newFile = {
+              id: 'file-' + Date.now() + Math.random().toString(36).substring(2, 5),
+              name: file.name,
+              type: file.name.split('.').pop().toLowerCase() || 'file',
+              size: file.size > 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : `${(file.size / 1024).toFixed(1)} KB`,
+              words: 1200,
+              active: true,
+              uploadDate: new Date().toISOString().split('T')[0],
+              content: `【講義檔案】${file.name}\n已成功匯入至個人資料庫，提供 AI 進行智慧檢測與複習。`
+            };
+            setFiles(prev => [newFile, ...prev]);
+          }
+        });
+        
+        e.target.value = '';
+        setIsUploadModalOpen(false);
+      };
+
+      const handleAddManualText = () => {
+        if (!uploadText.trim()) return;
+        const newFile = {
+          id: 'file-' + Date.now(),
+          name: uploadFileName.trim() ? `${uploadFileName}.txt` : `筆記_${new Date().toLocaleTimeString('zh-TW', {hour12: false}).slice(0, 5)}.txt`,
+          type: 'txt',
+          size: `${(uploadText.length / 1024).toFixed(1)} KB`,
+          words: uploadText.trim().split(/\s+/).filter(Boolean).length,
+          active: true,
+          uploadDate: new Date().toISOString().split('T')[0],
+          content: uploadText
+        };
+        setFiles(prev => [newFile, ...prev]);
+        setUploadText('');
+        setUploadFileName('');
+        setIsUploadModalOpen(false);
+      };
+
+      const triggerGeneration = (mode = selectedMode, count = questionCount) => {
+        const activeFiles = files.filter(f => f.active);
+        const docTitle = activeFiles[0]?.name.split('.')[0] || '學習筆記';
+
+        let mockData = {};
+        
+        if (mode === 'quiz') {
+          const questionsPool = Array.from({ length: count }, (_, i) => ({
+            id: i + 1,
+            question: `【第 ${i + 1} 題】根據講義「${docTitle}」之內容，下列關於關鍵觀念的敘述何者正確？`,
+            options: [
+              `選項 A：針對「${docTitle}」核心觀念正確的推導與結論`,
+              `選項 B：混淆概念邊界或常規定義的陷阱選項`,
+              `選項 C：與文本脈絡相反之誤導性敘述`,
+              `選項 D：不相干且非重點的次要資訊`
+            ],
+            answer: 0,
+            explanation: `第 ${i + 1} 題解析：根據講義「${docTitle}」，該原則明確定義核心變數間的直接影響關係，因此選項 A 為正確答案。`
+          }));
+
+          mockData = {
+            mode: 'quiz',
+            title: `【AI 模擬考】${docTitle} - 共 ${count} 題檢測`,
+            count: count,
+            questions: questionsPool
+          };
+        } else if (mode === 'summary') {
+          // 提供完全高密度的實質重點整理（絕非大綱，含定義、公式/機制、高頻陷阱與範例表格）
+          mockData = {
+            mode: 'summary',
+            title: `【深度重點整理全書】${docTitle}`,
+            quickSummary: `核心精華：「${docTitle}」的關鍵知識網絡可拆解為四個核心層次：正確定義與適用邊界、核心運作流程公式、考試高頻錯題 trap、以及口訣記憶技巧。`,
+            sections: [
+              {
+                sectionTitle: '一、 核心觀念與極致定義拆解',
+                badge: '基礎奠基',
+                items: [
+                  {
+                    concept: '1. 觀念定義與基本假設',
+                    content: `• 核心範疇：${docTitle} 的運作建立在系統無干擾與邊界條件齊備的基礎上。\n• 定義細節：必須嚴格區分「主動影響因子」與「被動反應變數」，切勿混淆兩者順序。\n• 適用範圍：僅適用於特定系統狀態下，若環境參數超出常規閾值，該結論將不再成立。`
+                  },
+                  {
+                    concept: '2. 關鍵專有名詞對照說明',
+                    content: `• 關鍵詞 A：代表系統運作的基礎初始狀態，具有不可逆性與累加性。\n• 關鍵詞 B：代表調節機制中的動態變數，直接決定反應速率與最終平衡點。`
+                  }
+                ]
+              },
+              {
+                sectionTitle: '二、 核心機制、公式與推導法則',
+                badge: '運作推導',
+                items: [
+                  {
+                    concept: '1. 連動影響機制與推導步驟',
+                    content: `① 第一階段（初始化）：輸入條件達成，激活核心反應程序。\n② 第二階段（動態平衡）：當變數上升至臨界值，系統進入正/負回饋調節迴路。\n③ 第三階段（收斂輸出）：終止條件觸發，輸出最後預期結果與沉澱狀態。`
+                  },
+                  {
+                    concept: '2. 計算與觀念推導公式',
+                    content: `• 關係表達：[ 系統總效能 E ] = [ 初始變數 α ] × [ 調節係數 β ] / [ 環境阻力 R ]\n• 極限分析：當阻力 R 趨近於 0 時，總效能 E 呈指數級上升；當 β 為負值時，系統產生逆向抑制。`
+                  }
+                ]
+              },
+              {
+                sectionTitle: '三、 高頻考點與極易混淆陷阱對照表',
+                badge: '考前避坑',
+                isTable: true,
+                tableHeaders: ['比較項目 / 考點', '正確概念（高分必記）', '常見陷阱 / 誤區（題目常設陷阱）'],
+                tableRows: [
+                  ['邊界條件判斷', '僅在恆溫/標準狀況下成立', '題目常故意忽略條件，寫成「任何情況皆適用」'],
+                  ['因果關係方向', 'A 變化導致 B 產生反應', '選項常倒果為因，誤導為 B 引發 A 的變化'],
+                  ['數量級與單位', '計算時必須換算為 SI 標準單位', '題目故意給予不同單位，測試是否記得單位轉換']
+                ]
+              },
+              {
+                sectionTitle: '四、 實戰解題技巧與記憶口訣',
+                badge: '記憶考驗',
+                items: [
+                  {
+                    concept: '1. 速記口訣整理',
+                    content: `👉 「一聽、二判、三推導」：題目出現「必定/絕對」時有 90% 為陷阱選項；出現「在特定條件下」時多為正確敘述。`
+                  },
+                  {
+                    concept: '2. 解題三步驟法',
+                    content: `步驟一：先看題目問的是「正確」還是「錯誤」並劃記。\n步驟二：找出關鍵字與限制條件，對照講義三大邊界。\n步驟三：排除明顯違背基本假設的選項。`
+                  }
+                ]
+              }
+            ]
+          };
+        } else if (mode === 'flashcards') {
+          mockData = {
+            mode: 'flashcards',
+            title: `【智慧字卡】${docTitle}`,
+            cards: Array.from({ length: Math.min(count, 8) }, (_, i) => ({
+              id: i + 1,
+              front: `關鍵詞彙 / 觀念 #${i + 1} (${docTitle})`,
+              back: `這是第 ${i + 1} 個觀念的詳細記憶說明與延伸應用技巧。`
+            }))
+          };
+        } else if (mode === 'explainer') {
+          mockData = {
+            mode: 'explainer',
+            title: `【費曼白話講解】${docTitle}`,
+            simpleExplanation: `「${docTitle}」的核心概念簡單來說，就是透過規則化將複雜數據簡化為可預測的規律。`,
+            analogy: `【生活比喻】：就像運算公式，只要輸入正確的原料（變數），經過預設流程（運算法則），就能產出穩定結果。`
+          };
+        } else if (mode === 'outline') {
+          mockData = {
+            mode: 'outline',
+            title: `【知識樹架構】${docTitle}`,
+            tree: [
+              { topic: `1. ${docTitle} 核心基礎`, subtopics: ['1.1 基本定義與術語', '1.2 發展背景與運作邏輯'] },
+              { topic: '2. 進階實踐與應用場景', subtopics: ['2.1 案例分析與解題技巧', '2.2 常見誤區排查'] }
+            ]
+          };
+        }
+        setGeneratedResult(mockData);
+      };
+
+      const handleGenerate = () => {
+        const activeFiles = files.filter(f => f.active);
+        if (activeFiles.length === 0) {
+          setErrorMsg('請至少勾選 1 個參與分析的檔案！');
+          return;
+        }
+
+        setErrorMsg('');
+        setIsLoading(true);
+        setCurrentView('workspace');
+        setQuizAnswers({});
+        setQuizSubmitted(false);
+        setFlashcardIndex(0);
+        setFlashcardFlipped(false);
+
+        setTimeout(() => {
+          triggerGeneration();
+          setIsLoading(false);
+
+          const modeObj = STUDY_MODES.find(m => m.id === selectedMode);
+          const titleName = activeFiles[0]?.name.split('.')[0] || '資料分析';
+
+          setHistory(prev => [{
+            id: 'h-' + Date.now(),
+            title: `${titleName} ${modeObj ? modeObj.badge : ''} (${selectedMode === 'quiz' ? `${questionCount}題` : ''})`,
+            mode: selectedMode,
+            count: questionCount,
+            date: '剛剛'
+          }, ...prev]);
+        }, 600);
+      };
+
+      const copyToClipboard = (text) => {
+        navigator.clipboard.writeText(text);
+        setCopyNotice(true);
+        setTimeout(() => setCopyNotice(false), 2000);
+      };
+
+      const calculateScore = () => {
+        if (!generatedResult || !generatedResult.questions) return 0;
+        let correctCount = 0;
+        generatedResult.questions.forEach(q => {
+          if (quizAnswers[q.id] === q.answer) correctCount++;
+        });
+        return Math.round((correctCount / generatedResult.questions.length) * 100);
+      };
+
+      return (
+        <div className="flex h-screen w-full overflow-hidden bg-slate-950 text-slate-100">
+          
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            multiple
+            accept=".txt,.pdf,.doc,.docx,.md,.csv,.json"
+            className="hidden"
+          />
+
+          {/* 側邊導覽列 (可切換展開/收合) */}
+          <aside className={`${sidebarCollapsed ? 'w-16' : 'w-64'} bg-slate-900/90 border-r border-slate-800/80 flex flex-col justify-between p-3 shrink-0 select-none z-20 transition-all duration-300 ease-in-out`}>
+            <div className="space-y-4">
+              
+              {/* 頂部 Logo 與 收合按鈕 */}
+              <div className="flex items-center justify-between px-1 py-1">
+                {!sidebarCollapsed && (
+                  <div 
+                    onClick={() => setCurrentView('dashboard')}
+                    className="flex items-center gap-2.5 cursor-pointer overflow-hidden"
+                  >
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 shrink-0">
+                      <i data-lucide="brain" className="w-4 h-4 text-white"></i>
+                    </div>
+                    <div className="truncate">
+                      <h1 className="font-bold text-xs bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
+                        Smart Study Hub
+                      </h1>
+                      <span className="text-[9px] text-indigo-400 font-mono block -mt-0.5">AI 智慧學習助理</span>
+                    </div>
+                  </div>
+                )}
+
+                {sidebarCollapsed && (
+                  <div 
+                    onClick={() => setCurrentView('dashboard')}
+                    className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 cursor-pointer mx-auto"
+                    title="首頁總覽"
+                  >
+                    <i data-lucide="brain" className="w-5 h-5 text-white"></i>
+                  </div>
+                )}
+
+                {/* 側欄開關按鈕 */}
+                <button
+                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                  className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer ml-auto"
+                  title={sidebarCollapsed ? "展開側欄" : "收合側欄"}
+                >
+                  <i data-lucide={sidebarCollapsed ? "panel-left-open" : "panel-left-close"} className="w-4 h-4"></i>
+                </button>
+              </div>
+
+              {/* 上傳按鈕 */}
+              <button
+                onClick={() => setIsUploadModalOpen(true)}
+                className={`w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer ${sidebarCollapsed ? 'px-0' : ''}`}
+                title="匯入講義/筆記"
+              >
+                <i data-lucide="plus-circle" className="w-4 h-4 shrink-0"></i>
+                {!sidebarCollapsed && <span>匯入講義 / 筆記</span>}
+              </button>
+
+              {/* 主選單 */}
+              <nav className="space-y-1">
+                <button
+                  onClick={() => setCurrentView('dashboard')}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold ${
+                    currentView === 'dashboard' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800/60'
+                  } ${sidebarCollapsed ? 'justify-center px-0' : ''}`}
+                  title="首頁總覽"
+                >
+                  <i data-lucide="home" className="w-4 h-4 shrink-0"></i>
+                  {!sidebarCollapsed && <span>首頁總覽</span>}
+                </button>
+
+                <button
+                  onClick={() => setCurrentView('workspace')}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold ${
+                    currentView === 'workspace' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800/60'
+                  } ${sidebarCollapsed ? 'justify-center px-0' : ''}`}
+                  title="AI 學習工作台"
+                >
+                  <i data-lucide="sparkles" className="w-4 h-4 shrink-0"></i>
+                  {!sidebarCollapsed && <span>AI 學習工作台</span>}
+                </button>
+
+                <button
+                  onClick={() => setCurrentView('library')}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold ${
+                    currentView === 'library' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800/60'
+                  } ${sidebarCollapsed ? 'justify-center px-0' : ''}`}
+                  title="學習資料庫"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <i data-lucide="folder" className="w-4 h-4 shrink-0"></i>
+                    {!sidebarCollapsed && <span>學習資料庫</span>}
+                  </div>
+                  {!sidebarCollapsed && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-indigo-300 font-mono">
+                      {files.length}
+                    </span>
+                  )}
+                </button>
+              </nav>
+
+              {/* 近期紀錄 (展開時才顯示詳細列表) */}
+              {!sidebarCollapsed && (
+                <div className="pt-2">
+                  <div className="flex justify-between items-center px-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">近期學習紀錄</span>
+                    {history.length > 0 && (
+                      <button onClick={clearAllHistory} className="text-[10px] text-rose-400 hover:underline">清除</button>
+                    )}
+                  </div>
+                  
+                  {history.length === 0 ? (
+                    <p className="text-[11px] text-slate-600 px-1 py-3 italic">尚無歷史紀錄</p>
+                  ) : (
+                    <div className="space-y-1 mt-2 max-h-36 overflow-y-auto">
+                      {history.map((item) => (
+                        <div
+                          key={item.id}
+                          onClick={() => {
+                            setCurrentView('workspace');
+                            setSelectedMode(item.mode);
+                            if(item.count) setQuestionCount(item.count);
+                            setIsLoading(true);
+                            setTimeout(() => {
+                              triggerGeneration(item.mode, item.count || questionCount);
+                              setIsLoading(false);
+                            }, 300);
+                          }}
+                          className="p-2 rounded-lg hover:bg-slate-800/60 cursor-pointer text-xs text-slate-300 truncate flex items-center justify-between group transition-colors"
+                        >
+                          <span className="truncate group-hover:text-indigo-300 transition-colors">{item.title}</span>
+                          <span className="text-[9px] text-slate-500 shrink-0 ml-1">{item.date}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+            </div>
+
+            {/* 儲存狀態 */}
+            {!sidebarCollapsed && (
+              <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60 text-[10px] space-y-0.5">
+                <div className="flex justify-between text-slate-400">
+                  <span>資料狀態</span>
+                  <span className="text-emerald-400 font-mono">本機持久儲存</span>
+                </div>
+              </div>
+            )}
+          </aside>
+
+          {/* 主要區域 */}
+          <main className="flex-1 flex flex-col overflow-hidden bg-slate-950">
+            
+            <header className="h-14 border-b border-slate-800/80 px-6 flex items-center justify-between shrink-0 bg-slate-900/40">
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-slate-200">
+                  {currentView === 'dashboard' && '首頁總覽 (Dashboard)'}
+                  {currentView === 'workspace' && 'AI 學習工作台'}
+                  {currentView === 'library' && '個人學習資料庫'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {currentView === 'workspace' && (
+                  <button
+                    onClick={handleGenerate}
+                    disabled={isLoading}
+                    className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-xs shadow-lg shadow-indigo-500/20 flex items-center gap-2 cursor-pointer transition-all"
+                  >
+                    <i data-lucide="wand-2" className="w-3.5 h-3.5"></i>
+                    <span>生成學習內容</span>
+                  </button>
+                )}
+              </div>
+            </header>
+
+            {currentView === 'workspace' && (
+              <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
+                
+                {/* 左側選項與控制項 */}
+                <div className="w-full lg:w-3/12 min-w-[280px] border-r border-slate-800/80 p-4 overflow-y-auto space-y-4 bg-slate-900/30">
+                  <div className="glass-card rounded-2xl p-3.5 space-y-2.5 border border-slate-800">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-xs font-bold text-slate-200">1. 選擇參與分析檔案</h3>
+                      <button 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-medium cursor-pointer"
+                      >
+                        <i data-lucide="upload-cloud" className="w-3 h-3"></i> 上傳
+                      </button>
+                    </div>
+
+                    {files.length === 0 ? (
+                      <div 
+                        onClick={() => setIsUploadModalOpen(true)}
+                        className="p-3 border border-dashed border-slate-700 hover:border-indigo-500 rounded-xl text-center cursor-pointer bg-slate-900/40 transition-colors"
+                      >
+                        <p className="text-[11px] text-slate-400">點此新增講義或筆記</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                        {files.map(file => (
+                          <div
+                            key={file.id}
+                            onClick={() => toggleFileActive(file.id)}
+                            className={`flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-colors ${
+                              file.active ? 'bg-indigo-950/40 border-indigo-500/50 text-indigo-200' : 'bg-slate-900/60 border-slate-800 text-slate-400'
+                            }`}
+                          >
+                            <span className="text-xs truncate font-medium">{file.name}</span>
+                            <span className="text-[9px] font-mono shrink-0 ml-1">{file.words} 字</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-bold text-slate-200">2. 選擇學習模式</h3>
+                    <div className="grid grid-cols-1 gap-2">
+                      {STUDY_MODES.map(mode => (
+                        <div
+                          key={mode.id}
+                          onClick={() => setSelectedMode(mode.id)}
+                          className={`p-2.5 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${
+                            selectedMode === mode.id ? 'bg-indigo-950/60 border-indigo-500' : 'bg-slate-900/50 border-slate-800/80 hover:bg-slate-800/50'
+                          }`}
+                        >
+                          <div>
+                            <h4 className="text-xs font-bold text-slate-100">{mode.title}</h4>
+                            <p className="text-[10px] text-slate-400">{mode.subtitle}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 題數選擇區塊 */}
+                  {selectedMode === 'quiz' && (
+                    <div className="glass-card rounded-2xl p-3.5 space-y-2 border border-slate-800">
+                      <h3 className="text-xs font-bold text-slate-200">3. 選擇模擬考題數量</h3>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {[5, 10, 15, 20].map(num => (
+                          <button
+                            key={num}
+                            onClick={() => setQuestionCount(num)}
+                            className={`py-1 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                              questionCount === num ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'
+                            }`}
+                          >
+                            {num} 題
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="glass-card rounded-2xl p-3.5 space-y-2 border border-slate-800">
+                    <h3 className="text-xs font-bold text-slate-200">4. 自訂指令 Prompt</h3>
+                    <textarea
+                      value={customPrompt}
+                      onChange={(e) => setCustomPrompt(e.target.value)}
+                      rows="2"
+                      className="w-full p-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                    ></textarea>
+                  </div>
+
+                  {errorMsg && <p className="text-xs text-rose-400 font-medium">{errorMsg}</p>}
+                </div>
+
+                {}
+                {/* 右側結果展示區（享受最大化寬度） */}
+                <div className="flex-1 p-6 overflow-y-auto bg-slate-950 flex flex-col">
+                  {isLoading && (
+                    <div className="m-auto text-center space-y-3">
+                      <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                      <p className="text-xs text-indigo-300 font-medium">AI 正在深入分析學習內容，生成全方位知識點...</p>
+                    </div>
+                  )}
+
+                  {!generatedResult && !isLoading && (
+                    <div className="m-auto text-center space-y-2 max-w-sm">
+                      <i data-lucide="sparkles" className="w-10 h-10 text-indigo-400 mx-auto opacity-50"></i>
+                      <h3 className="text-sm font-bold text-slate-300">準備好開始智慧學習了嗎？</h3>
+                      <p className="text-xs text-slate-500">請先在左側勾選或上傳您的筆記，再點擊右上角「生成學習內容」。</p>
+                    </div>
+                  )}
+
+                  {generatedResult && !isLoading && (
+                    <div className="space-y-6 w-full max-w-5xl mx-auto pb-10">
+                      <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+                        <h3 className="text-sm font-bold text-slate-100">{generatedResult.title}</h3>
+                        <button
+                          onClick={() => copyToClipboard(JSON.stringify(generatedResult, null, 2))}
+                          className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors text-[11px] text-slate-300 cursor-pointer"
+                        >
+                          {copyNotice ? '已複製 JSON' : '複製內容 JSON'}
+                        </button>
+                      </div>
+
+                      {/* 模式 1: 測驗 (Quiz) */}
+                      {generatedResult.mode === 'quiz' && (
+                        <div className="space-y-4">
+                          
+                          {/* 做完測驗後的計分看板 */}
+                          {quizSubmitted && (
+                            <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-950 to-purple-950 border border-indigo-500/40 text-center space-y-2">
+                              <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider">測驗結果總結</span>
+                              <div className="text-3xl font-extrabold text-white">{calculateScore()} <span className="text-sm font-normal text-slate-400">/ 100 分</span></div>
+                              <p className="text-xs text-slate-300">
+                                完成 {Object.keys(quizAnswers).length} / {generatedResult.questions.length} 題。下方已為您列出全數題目正確解答與詳細剖析：
+                              </p>
+                            </div>
+                          )}
+
+                          {generatedResult.questions.map((q) => {
+                            const userAns = quizAnswers[q.id];
+                            const isSelected = userAns !== undefined;
+
+                            return (
+                              <div key={q.id} className="glass-card rounded-2xl p-5 space-y-3 border border-slate-800">
+                                <div className="flex justify-between items-start">
+                                  <h4 className="text-sm font-bold text-slate-100 leading-relaxed">{q.question}</h4>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                  {q.options.map((opt, optIdx) => {
+                                    let btnStyle = 'bg-slate-900/80 border-slate-800 text-slate-300 hover:bg-slate-800';
+
+                                    if (quizSubmitted) {
+                                      if (optIdx === q.answer) {
+                                        btnStyle = 'bg-emerald-950/80 border-emerald-500 text-emerald-200 font-bold'; // 正確答案顯示綠色
+                                      } else if (userAns === optIdx) {
+                                        btnStyle = 'bg-rose-950/80 border-rose-500 text-rose-200'; // 選錯顯示紅色
+                                      }
+                                    } else if (userAns === optIdx) {
+                                      btnStyle = 'bg-indigo-950 border-indigo-500 text-indigo-200 font-semibold'; // 選取中
+                                    }
+
+                                    return (
+                                      <button
+                                        key={optIdx}
+                                        disabled={quizSubmitted}
+                                        onClick={() => setQuizAnswers({ ...quizAnswers, [q.id]: optIdx })}
+                                        className={`p-3 rounded-xl border text-left text-xs transition-colors cursor-pointer ${btnStyle}`}
+                                      >
+                                        {opt}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+
+                                {/* 未提交時提示 */}
+                                {!quizSubmitted && (
+                                  <div className="text-[10px] text-slate-500 pt-1 text-right">
+                                    {isSelected ? '✓ 已選擇答案 (完成全部題目後點擊下方公布答案)' : '請選擇一個選項'}
+                                  </div>
+                                )}
+
+                                {/* 提交後公布解析 */}
+                                {quizSubmitted && (
+                                  <div className="p-3.5 rounded-xl bg-slate-900/90 border border-indigo-500/30 text-xs text-indigo-200 mt-2 leading-relaxed">
+                                    <span className="font-bold text-indigo-400">💡 正確解答與解析：</span> {q.explanation}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+
+                          {/* 提交與公布答案按鈕 */}
+                          {!quizSubmitted ? (
+                            <button
+                              onClick={() => setQuizSubmitted(true)}
+                              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition-all cursor-pointer flex items-center justify-center gap-2"
+                            >
+                              <i data-lucide="check-circle-2" className="w-4 h-4"></i>
+                              <span>完成了！提交測驗並公布正確答案</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setQuizAnswers({});
+                                setQuizSubmitted(false);
+                              }}
+                              className="w-full py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-all cursor-pointer"
+                            >
+                              重新測驗
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {}
+                      {/* 模式 2: 重點整理 (Summary) - 完全實質內容，詳盡細緻整理 */}
+                      {generatedResult.mode === 'summary' && (
+                        <div className="space-y-6">
+                          <div className="p-5 rounded-2xl bg-indigo-950/50 border border-indigo-500/40 space-y-2">
+                            <h4 className="text-xs font-extrabold text-indigo-300 flex items-center gap-1.5 uppercase tracking-wider">
+                              <i data-lucide="file-text" className="w-4 h-4 text-indigo-400"></i>
+                              講義全書高壓精華摘要
+                            </h4>
+                            <p className="text-xs text-slate-200 leading-relaxed font-medium">
+                              {generatedResult.quickSummary}
+                            </p>
+                          </div>
+
+                          <div className="space-y-6">
+                            {generatedResult.sections.map((sec, idx) => (
+                              <div key={idx} className="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+                                <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                                  <h4 className="text-sm font-bold text-indigo-300">{sec.sectionTitle}</h4>
+                                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-indigo-900/60 text-indigo-300 font-mono">
+                                    {sec.badge}
+                                  </span>
+                                </div>
+
+                                {/* 普通觀念列表 */}
+                                {!sec.isTable && sec.items && (
+                                  <div className="grid grid-cols-1 gap-4">
+                                    {sec.items.map((item, itemIdx) => (
+                                      <div key={itemIdx} className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/60 space-y-2">
+                                        <h5 className="text-xs font-bold text-slate-200">{item.concept}</h5>
+                                        <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-line font-normal">
+                                          {item.content}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* 表格陷阱對照 */}
+                                {sec.isTable && (
+                                  <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-xs border-collapse">
+                                      <thead>
+                                        <tr className="border-b border-slate-800 text-slate-400 bg-slate-900/80">
+                                          {sec.tableHeaders.map((header, hIdx) => (
+                                            <th key={hIdx} className="p-3 font-semibold">{header}</th>
+                                          ))}
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                                        {sec.tableRows.map((row, rIdx) => (
+                                          <tr key={rIdx} className="hover:bg-slate-900/40">
+                                            <td className="p-3 font-semibold text-indigo-200">{row[0]}</td>
+                                            <td className="p-3 text-emerald-300">{row[1]}</td>
+                                            <td className="p-3 text-rose-300">{row[2]}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 模式 3: 記憶字卡 (Flashcards) */}
+                      {generatedResult.mode === 'flashcards' && (
+                        <div className="space-y-4 text-center max-w-xl mx-auto">
+                          <div className="perspective-1000 w-full h-72">
+                            <div
+                              onClick={() => setFlashcardFlipped(!flashcardFlipped)}
+                              className={`relative w-full h-full rounded-3xl cursor-pointer transform-style-3d ${flashcardFlipped ? 'rotate-y-180' : ''}`}
+                            >
+                              <div className="absolute inset-0 w-full h-full glass-card rounded-3xl p-8 flex flex-col justify-between items-center backface-hidden border border-indigo-500/30 bg-slate-900">
+                                <span className="text-[10px] text-indigo-400 font-mono">記憶卡片 ({flashcardIndex + 1} / {generatedResult.cards.length})</span>
+                                <h3 className="text-lg font-bold text-slate-100">{generatedResult.cards[flashcardIndex]?.front}</h3>
+                                <span className="text-[10px] text-slate-500">點擊翻轉看解析</span>
+                              </div>
+                              <div className="absolute inset-0 w-full h-full glass-card rounded-3xl p-8 flex flex-col justify-between items-center backface-hidden rotate-y-180 border border-emerald-500/30 bg-slate-900">
+                                <span className="text-[10px] text-emerald-400 font-mono">重點解析</span>
+                                <p className="text-xs text-slate-200">{generatedResult.cards[flashcardIndex]?.back}</p>
+                                <span className="text-[10px] text-slate-500">點擊翻轉回正面</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex justify-center items-center gap-4 pt-2">
+                            <button
+                              onClick={() => {
+                                setFlashcardFlipped(false);
+                                setFlashcardIndex((prev) => Math.max(0, prev - 1));
+                              }}
+                              disabled={flashcardIndex === 0}
+                              className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 disabled:opacity-40 cursor-pointer"
+                            >
+                              上一張
+                            </button>
+                            <span className="text-xs font-mono text-slate-400">{flashcardIndex + 1} / {generatedResult.cards.length}</span>
+                            <button
+                              onClick={() => {
+                                setFlashcardFlipped(false);
+                                setFlashcardIndex((prev) => Math.min(generatedResult.cards.length - 1, prev + 1));
+                              }}
+                              disabled={flashcardIndex === generatedResult.cards.length - 1}
+                              className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 disabled:opacity-40 cursor-pointer"
+                            >
+                              下一張
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 模式 4: 白話解說 (Explainer) */}
+                      {generatedResult.mode === 'explainer' && (
+                        <div className="space-y-4">
+                          <div className="glass-card rounded-2xl p-5 border border-slate-800 space-y-2">
+                            <h4 className="text-xs font-bold text-amber-400">通俗白話講解</h4>
+                            <p className="text-xs text-slate-200 leading-relaxed">{generatedResult.simpleExplanation}</p>
+                          </div>
+                          <div className="glass-card rounded-2xl p-5 border border-slate-800 space-y-2">
+                            <h4 className="text-xs font-bold text-orange-400">生活情境比喻</h4>
+                            <p className="text-xs text-slate-200 leading-relaxed">{generatedResult.analogy}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 模式 5: 知識樹結構 (Outline) */}
+                      {generatedResult.mode === 'outline' && (
+                        <div className="glass-card rounded-2xl p-5 border border-slate-800 space-y-4">
+                          {generatedResult.tree.map((section, idx) => (
+                            <div key={idx} className="space-y-2">
+                              <h4 className="text-xs font-bold text-rose-300">{section.topic}</h4>
+                              <ul className="pl-4 space-y-1 list-disc text-xs text-slate-300">
+                                {section.subtopics.map((sub, sIdx) => (
+                                  <li key={sIdx}>{sub}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* VIEW: DASHBOARD */}
+            {currentView === 'dashboard' && (
+              <div className="flex-1 overflow-y-auto p-8 space-y-8 max-w-5xl mx-auto w-full">
+                <div className="rounded-3xl p-8 bg-gradient-to-r from-indigo-900/60 to-purple-900/40 border border-indigo-500/30 space-y-4">
+                  <h2 className="text-2xl font-extrabold text-white">智慧學習助理平台</h2>
+                  <p className="text-xs text-slate-300">匯入您的講義或筆記，資料將自動儲存於您的瀏覽器中。隨時進行智慧測驗與重點整理。</p>
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => setCurrentView('workspace')}
+                      className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 flex items-center gap-2 cursor-pointer transition-all"
+                    >
+                      <span>開啟工作台</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-1">
+                    <span className="text-xs text-slate-400">個人學習資料庫</span>
+                    <div className="text-2xl font-bold font-mono text-indigo-300">{files.length} 份文件</div>
+                  </div>
+                  <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-1">
+                    <span className="text-xs text-slate-400">累積生成紀錄</span>
+                    <div className="text-2xl font-bold font-mono text-purple-300">{history.length} 次</div>
+                  </div>
+                  <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-1">
+                    <span className="text-xs text-slate-400">資料保存狀態</span>
+                    <div className="text-2xl font-bold text-emerald-400 text-sm pt-2">永久自動儲存 (Local)</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* VIEW: LIBRARY */}
+            {currentView === 'library' && (
+              <div className="flex-1 overflow-y-auto p-8 space-y-4 max-w-4xl mx-auto w-full">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-base font-bold text-white">個人學習資料庫 ({files.length})</h2>
+                  <button
+                    onClick={() => setIsUploadModalOpen(true)}
+                    className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <i data-lucide="plus" className="w-3.5 h-3.5"></i>
+                    <span>新增講義 / 筆記</span>
+                  </button>
+                </div>
+
+                {files.length === 0 ? (
+                  <div className="text-center py-16 glass-card rounded-2xl border border-slate-800 space-y-3">
+                    <i data-lucide="folder-open" className="w-10 h-10 text-slate-600 mx-auto"></i>
+                    <p className="text-xs text-slate-400">資料庫目前無任何檔案，點擊上方按鈕新增。</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {files.map(f => (
+                      <div key={f.id} className="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-xs font-bold text-slate-100 truncate">{f.name}</h4>
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 uppercase font-mono">{f.type}</span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 line-clamp-2">{f.content}</p>
+                        <div className="flex justify-between items-center text-[10px] text-slate-500 pt-2 border-t border-slate-800">
+                          <span>{f.size} • {f.uploadDate}</span>
+                          <button onClick={() => deleteFile(f.id)} className="text-rose-400 hover:text-rose-300 transition-colors cursor-pointer">刪除</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+          </main>
+
+          {/* Modal: 上傳與新增講義 */}
+          {isUploadModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+              <div className="glass-card w-full max-w-md rounded-3xl p-6 border border-slate-800 space-y-5">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xs font-bold text-white">匯入講義與筆記</h3>
+                  <button onClick={() => setIsUploadModalOpen(false)} className="text-slate-400 hover:text-slate-200 cursor-pointer">
+                    <i data-lucide="x" className="w-4 h-4"></i>
+                  </button>
+                </div>
+
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-5 border-2 border-dashed border-slate-700 hover:border-indigo-500/80 rounded-2xl text-center cursor-pointer bg-slate-900/40 hover:bg-slate-900/80 transition-all space-y-2"
+                >
+                  <i data-lucide="file-up" className="w-8 h-8 text-indigo-400 mx-auto"></i>
+                  <div className="text-xs font-bold text-slate-200">點擊從裝置選取檔案上傳</div>
+                  <p className="text-[10px] text-slate-400">支援 .txt, .pdf, .docx, .md, .csv 等文件格式</p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="h-px bg-slate-800 flex-1"></div>
+                  <span className="text-[10px] text-slate-500 font-mono">或直接貼上文字筆記</span>
+                  <div className="h-px bg-slate-800 flex-1"></div>
+                </div>
+
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="筆記標題 (可不填)"
+                    value={uploadFileName}
+                    onChange={(e) => setUploadFileName(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                  />
+                  <textarea
+                    rows="4"
+                    placeholder="在此貼上筆記內容..."
+                    value={uploadText}
+                    onChange={(e) => setUploadText(e.target.value)}
+                    className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                  ></textarea>
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <button 
+                    onClick={() => setIsUploadModalOpen(false)} 
+                    className="px-3.5 py-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                  >
+                    取消
+                  </button>
+                  <button 
+                    onClick={handleAddManualText} 
+                    className="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors shadow-lg shadow-indigo-600/30 cursor-pointer"
+                  >
+                    儲存至個人資料庫
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
