@@ -111,7 +111,6 @@
     function App() {
       const [currentView, setCurrentView] = useState('workspace');
       
-      // 使用 localStorage 持久化儲存檔案庫與歷史紀錄，預設為空陣列
       const [files, setFiles] = useState(() => {
         const saved = localStorage.getItem('study_hub_files');
         return saved ? JSON.parse(saved) : [];
@@ -123,7 +122,7 @@
       });
 
       const [selectedMode, setSelectedMode] = useState('quiz');
-      const [questionCount, setQuestionCount] = useState(5); // 可選題數 (預設 5 題)
+      const [questionCount, setQuestionCount] = useState(5);
       const [customPrompt, setCustomPrompt] = useState('專有名詞保留英文，幫我製作適合考前複習的內容。');
       
       const [isLoading, setIsLoading] = useState(false);
@@ -136,9 +135,11 @@
       const [uploadText, setUploadText] = useState('');
       const [uploadFileName, setUploadFileName] = useState('');
 
-      // 互動測驗與卡片狀態
+      // 測驗答題狀態：全做完才顯示答案
       const [quizAnswers, setQuizAnswers] = useState({});
-      const [showExplanations, setShowExplanations] = useState({});
+      const [quizSubmitted, setQuizSubmitted] = useState(false);
+
+      // 卡片狀態
       const [flashcardIndex, setFlashcardIndex] = useState(0);
       const [flashcardFlipped, setFlashcardFlipped] = useState(false);
 
@@ -232,24 +233,22 @@
 
       const triggerGeneration = (mode = selectedMode, count = questionCount) => {
         const activeFiles = files.filter(f => f.active);
-        const sourceText = activeFiles.map(f => f.content).join('\n') || '自訂學習主題';
         const docTitle = activeFiles[0]?.name.split('.')[0] || '學習筆記';
 
         let mockData = {};
         
         if (mode === 'quiz') {
-          // 動態生成指定題數的考題
           const questionsPool = Array.from({ length: count }, (_, i) => ({
             id: i + 1,
-            question: `【第 ${i + 1} 題】根據上傳資料「${docTitle}」的核心概念，下列何者敘述最為準確與符合脈絡？`,
+            question: `【第 ${i + 1} 題】根據講義「${docTitle}」之內容，下列關於關鍵觀念的敘述何者正確？`,
             options: [
-              `選項 A：與「${docTitle}」高度相關的核心觀念推導（正確答案）`,
-              `選項 B：概念邊界定義模糊或常見的考題陷阱`,
-              `選項 C：邏輯相反或非資料內記載的次要變數`,
-              `選項 D：不相干的背景知識干擾項`
+              `選項 A：針對「${docTitle}」核心觀念正確的推導與結論`,
+              `選項 B：混淆概念邊界或常規定義的陷阱選項`,
+              `選項 C：與文本脈絡相反之誤導性敘述`,
+              `選項 D：不相干且非重點的次要資訊`
             ],
             answer: 0,
-            explanation: `解析第 ${i + 1} 題：根據您的講義資料，該知識點著重於關鍵觀念的邏輯延伸與實務應用，因此選項 A 為最適當解。`
+            explanation: `第 ${i + 1} 題解析：根據講義「${docTitle}」，該原則明確定義核心變數間的直接影響關係，因此選項 A 為正確答案。`
           }));
 
           mockData = {
@@ -259,23 +258,23 @@
             questions: questionsPool
           };
         } else if (mode === 'summary') {
-          // 清除 TL;DR，改用 30 秒極速精華與詳細點對點摘要
+          // 直接提供實質重點整理（完全不含任何教導唸書的說明）
           mockData = {
             mode: 'summary',
-            title: `【重點速覽】${docTitle} 精華提鍊`,
-            quickSummary: `30秒極速精華：本內容核心圍繞於「${docTitle}」的關鍵結構與應用法則。透過條理化梳理，協助您在最短時間內抓准考試與複習的核心脈絡！`,
+            title: `【講義重點梳理】${docTitle}`,
+            quickSummary: `核心精華：「${docTitle}」之重點結構涵蓋三大主軸：基礎觀念界定、關鍵運作機制，以及高頻考點分析。`,
             keyTakeaways: [
               {
-                title: '📌 核心概念一：關鍵定義與範疇',
-                content: '精確掌控定義與核心公式/原則，避免基礎題型的觀念混淆。'
+                title: '一、 核心概念與基礎定義',
+                content: `1. 本單元重點在於理解「${docTitle}」的基本定理與邏輯範疇。\n2. 專有名詞定義精確掌握，重點在於區分邊界條件與適用範疇。`
               },
               {
-                title: '⚡ 核心概念二：邏輯運作機制與關聯',
-                content: '理解各項因子間的相互影響關係，為高分進階觀念題打下基礎。'
+                title: '二、 機制運作與主要推導',
+                content: '1. 各變數之間的連動關係是計算題與觀念題的主要考點。\n2. 系統運行的前置條件與終止條件為高頻測驗重點。'
               },
               {
-                title: '💡 核心概念三：考題陷阱與常見誤區',
-                content: '留意邊界條件與專有名詞，避免考場上因粗心或觀念死角而失分。'
+                title: '三、 考題常見陷阱與對比分析',
+                content: '1. 容易混淆的相近概念需進行對照記憶。\n2. 特殊例外狀況與限制條件是命題時最常出現的關鍵考點。'
               }
             ]
           };
@@ -293,8 +292,8 @@
           mockData = {
             mode: 'explainer',
             title: `【費曼白話講解】${docTitle}`,
-            simpleExplanation: `想像您正在向一位 10 歲的小朋友解釋「${docTitle}」。用最簡單的語言來說，就是透過系統化的規律將複雜知識簡單化！`,
-            analogy: `【生活比喻】：就像打電視遊戲關卡，掌握了怪物的攻擊規律（核心觀念）之後，就能快速找到通關捷徑（正確解答）。`
+            simpleExplanation: `「${docTitle}」的核心概念簡單來說，就是透過規則化將複雜數據簡化為可預測的規律。`,
+            analogy: `【生活比喻】：就像運算公式，只要輸入正確的原料（變數），經過預設流程（運算法則），就能產出穩定結果。`
           };
         } else if (mode === 'outline') {
           mockData = {
@@ -312,7 +311,7 @@
       const handleGenerate = () => {
         const activeFiles = files.filter(f => f.active);
         if (activeFiles.length === 0) {
-          setErrorMsg('請至少勾選 1 個參與分析的檔案！若資料庫無檔案請先點擊「匯入講義 / 筆記」。');
+          setErrorMsg('請至少勾選 1 個參與分析的檔案！');
           return;
         }
 
@@ -320,7 +319,7 @@
         setIsLoading(true);
         setCurrentView('workspace');
         setQuizAnswers({});
-        setShowExplanations({});
+        setQuizSubmitted(false);
         setFlashcardIndex(0);
         setFlashcardFlipped(false);
 
@@ -347,6 +346,15 @@
         setTimeout(() => setCopyNotice(false), 2000);
       };
 
+      const calculateScore = () => {
+        if (!generatedResult || !generatedResult.questions) return 0;
+        let correctCount = 0;
+        generatedResult.questions.forEach(q => {
+          if (quizAnswers[q.id] === q.answer) correctCount++;
+        });
+        return Math.round((correctCount / generatedResult.questions.length) * 100);
+      };
+
       return (
         <div className="flex h-screen w-full overflow-hidden bg-slate-950 text-slate-100">
           
@@ -359,6 +367,7 @@
             className="hidden"
           />
 
+          {/* 側邊導覽列 */}
           <aside className="w-64 bg-slate-900/90 border-r border-slate-800/80 flex flex-col justify-between p-4 shrink-0 select-none z-20">
             <div className="space-y-5">
               
@@ -437,7 +446,7 @@
                 {history.length === 0 ? (
                   <p className="text-[11px] text-slate-600 px-2 py-3 italic">尚無歷史紀錄</p>
                 ) : (
-                  <div className="space-y-1 mt-2 max-h-40 overflow-y-auto">
+                  <div className="space-y-1 mt-2 max-h-36 overflow-y-auto">
                     {history.map((item) => (
                       <div
                         key={item.id}
@@ -471,6 +480,7 @@
             </div>
           </aside>
 
+          {/* 主要區域 */}
           <main className="flex-1 flex flex-col overflow-hidden bg-slate-950">
             
             <header className="h-14 border-b border-slate-800/80 px-6 flex items-center justify-between shrink-0 bg-slate-900/40">
@@ -480,21 +490,24 @@
                 {currentView === 'library' && '個人學習資料庫'}
               </span>
 
-              {currentView === 'workspace' && (
-                <button
-                  onClick={handleGenerate}
-                  disabled={isLoading}
-                  className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-xs shadow-lg shadow-indigo-500/20 flex items-center gap-2 cursor-pointer transition-all"
-                >
-                  <i data-lucide="wand-2" className="w-3.5 h-3.5"></i>
-                  <span>生成學習內容</span>
-                </button>
-              )}
+              <div className="flex items-center gap-3">
+                {currentView === 'workspace' && (
+                  <button
+                    onClick={handleGenerate}
+                    disabled={isLoading}
+                    className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-xs shadow-lg shadow-indigo-500/20 flex items-center gap-2 cursor-pointer transition-all"
+                  >
+                    <i data-lucide="wand-2" className="w-3.5 h-3.5"></i>
+                    <span>生成學習內容</span>
+                  </button>
+                )}
+              </div>
             </header>
 
             {currentView === 'workspace' && (
               <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
                 
+                {/* 左側選項與控制項 */}
                 <div className="w-full lg:w-4/12 border-r border-slate-800/80 p-5 overflow-y-auto space-y-5 bg-slate-900/30">
                   <div className="glass-card rounded-2xl p-4 space-y-3 border border-slate-800">
                     <div className="flex justify-between items-center">
@@ -552,6 +565,7 @@
                     </div>
                   </div>
 
+                  {/* 題數選擇區塊 */}
                   {selectedMode === 'quiz' && (
                     <div className="glass-card rounded-2xl p-4 space-y-2 border border-slate-800">
                       <h3 className="text-xs font-bold text-slate-200">3. 選擇模擬考題數量</h3>
@@ -584,6 +598,7 @@
                   {errorMsg && <p className="text-xs text-rose-400 font-medium">{errorMsg}</p>}
                 </div>
 
+                {/* 右側結果展示區 */}
                 <div className="flex-1 p-6 overflow-y-auto bg-slate-950 flex flex-col">
                   {isLoading && (
                     <div className="m-auto text-center space-y-3">
@@ -608,52 +623,108 @@
                           onClick={() => copyToClipboard(JSON.stringify(generatedResult, null, 2))}
                           className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors text-[11px] text-slate-300 cursor-pointer"
                         >
-                          {copyNotice ? '已複製' : '複製內容'}
+                          {copyNotice ? '已複製 JSON' : '複製內容 JSON'}
                         </button>
                       </div>
 
+                      {/* 模式 1: 測驗 (Quiz) - 作答完全部題目後點擊下方按鈕才公布解答 */}
                       {generatedResult.mode === 'quiz' && (
                         <div className="space-y-4">
-                          {generatedResult.questions.map((q) => (
-                            <div key={q.id} className="glass-card rounded-2xl p-5 space-y-3 border border-slate-800">
-                              <div className="flex justify-between items-start">
-                                <h4 className="text-xs font-bold text-slate-100 leading-relaxed">{q.question}</h4>
-                              </div>
-                              <div className="space-y-2">
-                                {q.options.map((opt, optIdx) => (
-                                  <button
-                                    key={optIdx}
-                                    onClick={() => {
-                                      setQuizAnswers({ ...quizAnswers, [q.id]: optIdx });
-                                      setShowExplanations({ ...showExplanations, [q.id]: true });
-                                    }}
-                                    className={`w-full p-3 rounded-xl border text-left text-xs transition-colors cursor-pointer ${
-                                      quizAnswers[q.id] === optIdx 
-                                        ? (optIdx === q.answer ? 'bg-emerald-950/60 border-emerald-500 text-emerald-200' : 'bg-rose-950/60 border-rose-500 text-rose-200')
-                                        : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:bg-slate-800'
-                                    }`}
-                                  >
-                                    {opt}
-                                  </button>
-                                ))}
-                              </div>
-
-                              {showExplanations[q.id] && (
-                                <div className="p-3 rounded-xl bg-slate-900/90 border border-indigo-500/30 text-xs text-indigo-200 mt-2">
-                                  <span className="font-bold text-indigo-400">💡 題目解析：</span> {q.explanation}
-                                </div>
-                              )}
+                          
+                          {/* 做完測驗後的計分看板 */}
+                          {quizSubmitted && (
+                            <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-950 to-purple-950 border border-indigo-500/40 text-center space-y-2">
+                              <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider">測驗結果總結</span>
+                              <div className="text-3xl font-extrabold text-white">{calculateScore()} <span className="text-sm font-normal text-slate-400">/ 100 分</span></div>
+                              <p className="text-xs text-slate-300">
+                                完成 {Object.keys(quizAnswers).length} / {generatedResult.questions.length} 題。下方已為您列出全數題目正確解答與詳細剖析：
+                              </p>
                             </div>
-                          ))}
+                          )}
+
+                          {generatedResult.questions.map((q) => {
+                            const userAns = quizAnswers[q.id];
+                            const isSelected = userAns !== undefined;
+
+                            return (
+                              <div key={q.id} className="glass-card rounded-2xl p-5 space-y-3 border border-slate-800">
+                                <div className="flex justify-between items-start">
+                                  <h4 className="text-xs font-bold text-slate-100 leading-relaxed">{q.question}</h4>
+                                </div>
+                                <div className="space-y-2">
+                                  {q.options.map((opt, optIdx) => {
+                                    let btnStyle = 'bg-slate-900/80 border-slate-800 text-slate-300 hover:bg-slate-800';
+
+                                    if (quizSubmitted) {
+                                      if (optIdx === q.answer) {
+                                        btnStyle = 'bg-emerald-950/80 border-emerald-500 text-emerald-200 font-bold'; // 正確答案顯示綠色
+                                      } else if (userAns === optIdx) {
+                                        btnStyle = 'bg-rose-950/80 border-rose-500 text-rose-200'; // 選錯顯示紅色
+                                      }
+                                    } else if (userAns === optIdx) {
+                                      btnStyle = 'bg-indigo-950 border-indigo-500 text-indigo-200 font-semibold'; // 選取中
+                                    }
+
+                                    return (
+                                      <button
+                                        key={optIdx}
+                                        disabled={quizSubmitted}
+                                        onClick={() => setQuizAnswers({ ...quizAnswers, [q.id]: optIdx })}
+                                        className={`w-full p-3 rounded-xl border text-left text-xs transition-colors cursor-pointer ${btnStyle}`}
+                                      >
+                                        {opt}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+
+                                {/* 未提交時提示 */}
+                                {!quizSubmitted && (
+                                  <div className="text-[10px] text-slate-500 pt-1 text-right">
+                                    {isSelected ? '✓ 已選擇答案 (完成全部題目後點擊下方公布答案)' : '請選擇一個選項'}
+                                  </div>
+                                )}
+
+                                {/* 提交後公布解析 */}
+                                {quizSubmitted && (
+                                  <div className="p-3 rounded-xl bg-slate-900/90 border border-indigo-500/30 text-xs text-indigo-200 mt-2">
+                                    <span className="font-bold text-indigo-400">💡 正確解答與解析：</span> {q.explanation}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+
+                          {/* 提交與公布答案按鈕 */}
+                          {!quizSubmitted ? (
+                            <button
+                              onClick={() => setQuizSubmitted(true)}
+                              className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition-all cursor-pointer flex items-center justify-center gap-2"
+                            >
+                              <i data-lucide="check-circle-2" className="w-4 h-4"></i>
+                              <span>完成了！提交測驗並公布正確答案</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setQuizAnswers({});
+                                setQuizSubmitted(false);
+                              }}
+                              className="w-full py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-all cursor-pointer"
+                            >
+                              重新測驗
+                            </button>
+                          )}
                         </div>
                       )}
 
+                      {/* 模式 2: 重點整理 (Summary) - 直接提供精確觀念分析與講義重點條列 */}
                       {generatedResult.mode === 'summary' && (
                         <div className="space-y-4">
-                          <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-950/80 to-purple-950/60 border border-indigo-500/40 space-y-2">
+                          <div className="p-5 rounded-2xl bg-indigo-950/50 border border-indigo-500/40 space-y-2">
                             <h4 className="text-xs font-extrabold text-indigo-300 flex items-center gap-1.5">
-                              <i data-lucide="zap" className="w-4 h-4 text-amber-400"></i>
-                              30 秒極速精華
+                              <i data-lucide="file-text" className="w-4 h-4 text-indigo-400"></i>
+                              講義核心摘要精華
                             </h4>
                             <p className="text-xs text-slate-200 leading-relaxed font-medium">
                               {generatedResult.quickSummary}
@@ -661,17 +732,18 @@
                           </div>
 
                           <div className="space-y-3">
-                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">核心章節脈絡解析</h4>
+                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">核心章節重點整理</h4>
                             {generatedResult.keyTakeaways.map((item, idx) => (
-                              <div key={idx} className="glass-card rounded-2xl p-4 border border-slate-800 space-y-2">
+                              <div key={idx} className="glass-card rounded-2xl p-5 border border-slate-800 space-y-2">
                                 <h5 className="text-xs font-bold text-indigo-300">{item.title}</h5>
-                                <p className="text-xs text-slate-300 leading-relaxed">{item.content}</p>
+                                <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-line">{item.content}</p>
                               </div>
                             ))}
                           </div>
                         </div>
                       )}
 
+                      {/* 模式 3: 記憶字卡 (Flashcards) */}
                       {generatedResult.mode === 'flashcards' && (
                         <div className="space-y-4 text-center">
                           <div className="perspective-1000 w-full h-64">
@@ -718,6 +790,7 @@
                         </div>
                       )}
 
+                      {/* 模式 4: 白話解說 (Explainer) */}
                       {generatedResult.mode === 'explainer' && (
                         <div className="space-y-4">
                           <div className="glass-card rounded-2xl p-5 border border-slate-800 space-y-2">
@@ -731,6 +804,7 @@
                         </div>
                       )}
 
+                      {/* 模式 5: 知識樹結構 (Outline) */}
                       {generatedResult.mode === 'outline' && (
                         <div className="glass-card rounded-2xl p-5 border border-slate-800 space-y-4">
                           {generatedResult.tree.map((section, idx) => (
@@ -751,17 +825,20 @@
               </div>
             )}
 
+            {/* VIEW: DASHBOARD */}
             {currentView === 'dashboard' && (
               <div className="flex-1 overflow-y-auto p-8 space-y-8 max-w-5xl mx-auto w-full">
                 <div className="rounded-3xl p-8 bg-gradient-to-r from-indigo-900/60 to-purple-900/40 border border-indigo-500/30 space-y-4">
                   <h2 className="text-2xl font-extrabold text-white">智慧學習助理平台</h2>
                   <p className="text-xs text-slate-300">匯入您的講義或筆記，資料將自動儲存於您的瀏覽器中。隨時進行智慧測驗與重點整理。</p>
-                  <button
-                    onClick={() => setCurrentView('workspace')}
-                    className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 flex items-center gap-2 cursor-pointer transition-all"
-                  >
-                    <span>開啟工作台</span>
-                  </button>
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => setCurrentView('workspace')}
+                      className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 flex items-center gap-2 cursor-pointer transition-all"
+                    >
+                      <span>開啟工作台</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -781,6 +858,7 @@
               </div>
             )}
 
+            {/* VIEW: LIBRARY */}
             {currentView === 'library' && (
               <div className="flex-1 overflow-y-auto p-8 space-y-4 max-w-4xl mx-auto w-full">
                 <div className="flex justify-between items-center">
@@ -821,6 +899,7 @@
 
           </main>
 
+          {/* Modal: 上傳與新增講義 */}
           {isUploadModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
               <div className="glass-card w-full max-w-md rounded-3xl p-6 border border-slate-800 space-y-5">
