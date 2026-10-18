@@ -281,7 +281,8 @@
             tldr: '本資料整合機器學習兩大支柱（監督/非監督）與個體經濟學供需彈性模型。',
             keyPoints: [
               { concept: 'Supervised vs Unsupervised', detail: '監督式學習採用 Labeled Data；非監督式學習用於分群與降維。' },
-              { concept: 'Overfitting 解決方案', detail: '常見技巧包含 L1/L2 Regularization、Dropout 與數據擴增。' }
+              { concept: 'Overfitting 解決方案', detail: '常見技巧包含 L1/L2 Regularization、Dropout 與數據擴增。' },
+              { concept: '供需價格彈性 (PED)', detail: '衡量消費者對價格變動敏感度，PED > 1 代表富有彈性。' }
             ]
           };
         } else if (mode === 'flashcards') {
@@ -290,7 +291,8 @@
             title: customTitle ? `【智慧卡片】${customTitle}` : '【智慧卡片】核心單字與記憶卡',
             cards: [
               { id: 1, front: 'Supervised Learning', back: '監督式學習：利用含有標籤的資料訓練模型從 X 映射到 Y 的規律。' },
-              { id: 2, front: 'Overfitting', back: '過擬合：訓練集表現好但測試集泛化能力不佳。' }
+              { id: 2, front: 'Overfitting', back: '過擬合：訓練集表現好但測試集泛化能力不佳。' },
+              { id: 3, front: 'Price Elasticity of Demand', back: '需求價格彈性：價格變動百分之一所引起的需求量變動百分比。' }
             ]
           };
         } else if (mode === 'explainer') {
@@ -573,37 +575,53 @@
                       {/* MODE: QUIZ */}
                       {generatedResult.mode === 'quiz' && (
                         <div className="space-y-4">
-                          {generatedResult.questions.map((q, idx) => (
-                            <div key={q.id} className="glass-card rounded-2xl p-5 space-y-3 border border-slate-800">
-                              <h4 className="text-xs font-bold text-slate-100">Q{idx + 1}. {q.question}</h4>
-                              <div className="space-y-2">
-                                {q.options.map((opt, optIdx) => (
-                                  <button
-                                    key={optIdx}
-                                    onClick={() => setQuizAnswers({ ...quizAnswers, [q.id]: optIdx })}
-                                    className={`w-full p-2.5 rounded-xl border text-left text-xs transition-colors cursor-pointer ${
-                                      quizAnswers[q.id] === optIdx ? 'bg-indigo-600/30 border-indigo-500 text-white' : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:bg-slate-800'
-                                    }`}
-                                  >
-                                    {opt}
-                                  </button>
-                                ))}
+                          {generatedResult.questions.map((q, idx) => {
+                            const isAnswered = quizAnswers[q.id] !== undefined;
+                            const isCorrect = quizAnswers[q.id] === q.answer;
+
+                            return (
+                              <div key={q.id} className="glass-card rounded-2xl p-5 space-y-3 border border-slate-800">
+                                <h4 className="text-xs font-bold text-slate-100">Q{idx + 1}. {q.question}</h4>
+                                <div className="space-y-2">
+                                  {q.options.map((opt, optIdx) => {
+                                    const selected = quizAnswers[q.id] === optIdx;
+                                    let btnStyle = "bg-slate-900/80 border-slate-800 text-slate-300 hover:bg-slate-800";
+                                    if (selected) {
+                                      btnStyle = optIdx === q.answer ? "bg-emerald-900/50 border-emerald-500 text-emerald-200" : "bg-rose-900/50 border-rose-500 text-rose-200";
+                                    }
+
+                                    return (
+                                      <button
+                                        key={optIdx}
+                                        onClick={() => setQuizAnswers({ ...quizAnswers, [q.id]: optIdx })}
+                                        className={`w-full p-2.5 rounded-xl border text-left text-xs transition-colors cursor-pointer ${btnStyle}`}
+                                      >
+                                        {opt}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                                {isAnswered && (
+                                  <div className={`p-3 rounded-xl text-xs ${isCorrect ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-800' : 'bg-rose-950/40 text-rose-300 border border-rose-800'}`}>
+                                    <strong>{isCorrect ? '答對了！' : '答案不正確。'}</strong> {q.explanation}
+                                  </div>
+                                )}
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
 
                       {/* MODE: SUMMARY */}
                       {generatedResult.mode === 'summary' && (
                         <div className="space-y-4">
-                          <div className="p-4 rounded-2xl bg-blue-950/40 border border-blue-500/30 text-xs text-blue-200">
-                            <strong>TL;DR: </strong>{generatedResult.tldr}
+                          <div className="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 text-xs text-indigo-200">
+                            <strong className="text-indigo-400">TL;DR 快速摘要：</strong>{generatedResult.tldr}
                           </div>
                           {generatedResult.keyPoints.map((kp, idx) => (
                             <div key={idx} className="glass-card rounded-2xl p-4 border border-slate-800 space-y-1">
                               <h4 className="text-xs font-bold text-indigo-300">{kp.concept}</h4>
-                              <p className="text-xs text-slate-300">{kp.detail}</p>
+                              <p className="text-xs text-slate-300 leading-relaxed">{kp.detail}</p>
                             </div>
                           ))}
                         </div>
@@ -618,16 +636,37 @@
                               className={`relative w-full h-full rounded-3xl cursor-pointer transform-style-3d ${flashcardFlipped ? 'rotate-y-180' : ''}`}
                             >
                               <div className="absolute inset-0 w-full h-full glass-card rounded-3xl p-6 flex flex-col justify-between items-center backface-hidden border border-indigo-500/30 bg-slate-900">
-                                <span className="text-[10px] text-indigo-400 font-mono">卡片正面</span>
-                                <h3 className="text-base font-bold text-slate-100">{generatedResult.cards[flashcardIndex]?.front}</h3>
-                                <span className="text-[10px] text-slate-500">點擊翻轉</span>
+                                <span className="text-[10px] text-indigo-400 font-mono">卡片正面 ({flashcardIndex + 1} / {generatedResult.cards.length})</span>
+                                <h3 className="text-lg font-bold text-slate-100">{generatedResult.cards[flashcardIndex]?.front}</h3>
+                                <span className="text-[10px] text-slate-500">點擊翻轉查看觀念解析</span>
                               </div>
                               <div className="absolute inset-0 w-full h-full glass-card rounded-3xl p-6 flex flex-col justify-between items-center backface-hidden rotate-y-180 border border-emerald-500/30 bg-slate-900">
                                 <span className="text-[10px] text-emerald-400 font-mono">觀念解析</span>
-                                <p className="text-xs text-slate-200">{generatedResult.cards[flashcardIndex]?.back}</p>
-                                <span className="text-[10px] text-slate-500">點擊翻轉</span>
+                                <p className="text-xs text-slate-200 leading-relaxed">{generatedResult.cards[flashcardIndex]?.back}</p>
+                                <span className="text-[10px] text-slate-500">點擊翻轉回到正面</span>
                               </div>
                             </div>
+                          </div>
+                          <div className="flex justify-between items-center px-4">
+                            <button
+                              onClick={() => {
+                                setFlashcardFlipped(false);
+                                setFlashcardIndex((prev) => (prev > 0 ? prev - 1 : generatedResult.cards.length - 1));
+                              }}
+                              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 cursor-pointer"
+                            >
+                              上一張
+                            </button>
+                            <span className="text-xs text-slate-400 font-mono">{flashcardIndex + 1} / {generatedResult.cards.length}</span>
+                            <button
+                              onClick={() => {
+                                setFlashcardFlipped(false);
+                                setFlashcardIndex((prev) => (prev < generatedResult.cards.length - 1 ? prev + 1 : 0));
+                              }}
+                              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 cursor-pointer"
+                            >
+                              下一張
+                            </button>
                           </div>
                         </div>
                       )}
@@ -636,11 +675,11 @@
                       {generatedResult.mode === 'explainer' && (
                         <div className="space-y-4">
                           <div className="glass-card rounded-2xl p-5 border border-slate-800 space-y-2">
-                            <h4 className="text-xs font-bold text-amber-400">通俗解說</h4>
+                            <h4 className="text-xs font-bold text-amber-400">通俗白話解說</h4>
                             <p className="text-xs text-slate-200 leading-relaxed">{generatedResult.simpleExplanation}</p>
                           </div>
                           <div className="glass-card rounded-2xl p-5 border border-slate-800 space-y-2">
-                            <h4 className="text-xs font-bold text-orange-400">情境比喻</h4>
+                            <h4 className="text-xs font-bold text-orange-400">情境比喻說明</h4>
                             <p className="text-xs text-slate-200 leading-relaxed">{generatedResult.analogy}</p>
                           </div>
                         </div>
@@ -651,8 +690,8 @@
                         <div className="glass-card rounded-2xl p-5 border border-slate-800 space-y-4">
                           {generatedResult.tree.map((section, idx) => (
                             <div key={idx} className="space-y-2">
-                              <h4 className="text-xs font-bold text-rose-300">{section.topic}</h4>
-                              <ul className="pl-4 space-y-1 list-disc text-xs text-slate-300">
+                              <h4 className="text-xs font-bold text-indigo-300">{section.topic}</h4>
+                              <ul className="pl-4 space-y-1.5 list-disc text-xs text-slate-300">
                                 {section.subtopics.map((sub, sIdx) => (
                                   <li key={sIdx}>{sub}</li>
                                 ))}
